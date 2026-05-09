@@ -1,6 +1,6 @@
 ---
 name: prd
-description: (fslzrr) Explores the codebase deeply, then structures confirmed /interview findings into a PRD GitHub issue — mapping interview narrative to template sections, identifying modules to build or modify, and surfacing deepening opportunities. TRIGGER when: user says "create a PRD", "write the PRD", "turn this into a PRD", "publish the spec", or when /interview has just produced a confirmed summary.
+description: "(fslzrr) Explores the codebase deeply, then structures confirmed /interview findings into a PRD GitHub issue — mapping interview narrative to template sections, identifying modules to build or modify, and surfacing deepening opportunities. TRIGGER when: user says 'create a PRD', 'write the PRD', 'turn this into a PRD', 'publish the spec', or when /interview has just produced a confirmed summary."
 ---
 
 Structure the confirmed findings from a `/interview` session into a PRD and publish it as a GitHub issue. You own the structuring responsibility — `/interview` discovers, you impose the template. Before structuring anything, you explore the codebase deeply so the PRD is grounded in what actually exists.

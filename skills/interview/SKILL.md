@@ -1,6 +1,6 @@
 ---
 name: interview
-description: (fslzrr) Conducts a relentless requirements interview — one question at a time with recommended answers and pushback — until a full shared understanding is confirmed and handed off to /prd. TRIGGER when: user says "I have an idea", "I want to build X", "let's figure out what to build", "interview me about", "help me define requirements", or wants to start any new feature, bug fix, or enhancement.
+description: "(fslzrr) Conducts a relentless requirements interview — one question at a time with recommended answers and pushback — until a full shared understanding is confirmed and handed off to /prd. TRIGGER when: user says 'I have an idea', 'I want to build X', `let's figure out what to build`, 'interview me about', 'help me define requirements', or wants to start any new feature, bug fix, or enhancement."
 ---
 
 Conduct a relentless requirements interview until you and the human have reached a complete, shared understanding of what needs to be built. Nothing should be left ambiguous or deferred to AI judgment.

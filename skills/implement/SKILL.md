@@ -1,6 +1,6 @@
 ---
 name: implement
-description: (fslzrr) Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, runs /tdd and /review per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says "implement task #N", "start implementing", "work on this task" or "implement this".
+description: "(fslzrr) Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, runs /tdd and /review per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says 'implement task #N', 'start implementing', 'work on this task' or 'implement this'."
 ---
 
 Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestrator — you drive each SUBTASK through `/tdd` and `/review`, manage the git history, and own the PR lifecycle.

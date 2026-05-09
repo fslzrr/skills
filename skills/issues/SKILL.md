@@ -1,6 +1,6 @@
 ---
 name: issues
-description: (fslzrr) Manages GitHub issues for the software factory — creates, reads, updates, and lists PRD and TASK issues; transitions states via labels; shows a status dashboard; and auto-creates missing factory labels. TRIGGER when: user says "show status", "list issues", "what's in progress", "update issue #N", "mark as blocked", "create an issue", "close this issue", or any other GitHub issue management request.
+description: "(fslzrr) Manages GitHub issues for the software factory — creates, reads, updates, and lists PRD and TASK issues; transitions states via labels; shows a status dashboard; and auto-creates missing factory labels. TRIGGER when: user says 'show status', 'list issues', `what's in progress`, 'update issue #N', 'mark as blocked', 'create an issue', 'close this issue', or any other GitHub issue management request."
 ---
 
 Manage GitHub issues for the software factory. You are the authoritative interface between the factory and GitHub — you understand what every label means, what transitions are valid, and what state each issue should be in.
