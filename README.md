@@ -4,6 +4,10 @@ I started a journey to discover how I to leverage AI and *actually ship* softwar
 
 Wihtin this repo, every skill that I currently use (or I'm currently building) lives.
 
+[![skills.sh](https://skills.sh/b/fslzrr/skills)](https://skills.sh/fslzrr/skills)
+
 ## Installation
 
-TODO: actually add a way for people to install them in the most generic possible way.
+```sh
+npx skills add fslzrr/skills
+```
