@@ -30,7 +30,7 @@ Before drafting, scan the codebase exploration findings for architectural decisi
 2. **Costly to reverse** — unwinding it later would require changes across multiple components or would break established interfaces.
 3. **Chosen over a notable alternative for non-obvious reasons** — a reasonable engineer might have picked differently without this context.
 
-Note every qualifying decision found. The results feed into the PRD draft in the next step.
+Note every qualifying decision found. If none qualify, skip to Step 3 — do not add an **Identified ADRs** section to the PRD draft. If one or more qualify, carry the list into Step 3.
 
 ### 3. Draft the PRD
 
@@ -40,6 +40,11 @@ Map the interview narrative and codebase findings to each section of the PRD tem
 - If the interview only partially covers it, fill what you can and ask the human one targeted follow-up question.
 - If the interview does not cover it at all, mark it as `TBD — not discussed`.
 - The `Implementation Decisions` section must name specific modules to touch, call out deepening opportunities found, and justify architectural choices against what already exists in the codebase.
+- If Step 2 found qualifying decisions, append an **Identified ADRs** section after `Further Notes`. For each decision, write one entry:
+  - **Name**: a short imperative phrase (e.g., "Store skill state in GitHub issues")
+  - **Rationale**: one sentence explaining why this choice was made
+  - **Alternatives**: a brief note on what was not chosen (e.g., "vs. local YAML files")
+  Keep these as brief pointers — no Nygard-format content (no Context, Decision, Status, or Consequences fields).
 
 Do not ask multiple follow-up questions at once. Resolve gaps one at a time.
 
@@ -78,6 +83,12 @@ Do not ask multiple follow-up questions at once. Resolve gaps one at a time.
 
 ## Further Notes
 <!-- Anything else relevant -->
+
+<!-- include only when Step 2 found qualifying decisions -->
+## Identified ADRs
+<!-- - **Name**: short imperative phrase -->
+<!--   **Rationale**: one sentence -->
+<!--   **Alternatives**: brief note on what was not chosen -->
 ```
 
 ### 4. Show the draft to the human
