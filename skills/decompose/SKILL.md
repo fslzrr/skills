@@ -18,6 +18,7 @@ Use `/issues` to read the full PRD content. Pay close attention to:
 - Acceptance Criteria or Testing Decisions (these inform TASK acceptance criteria)
 - Out of Scope (ensure no TASK crosses this boundary)
 - Dependencies (some TASKs may be blocked by these)
+- **Identified ADRs** (each entry becomes one ADR TASK — see step 5)
 
 ### 2. Group user stories into vertical slices
 
