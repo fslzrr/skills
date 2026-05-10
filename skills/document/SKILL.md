@@ -7,7 +7,7 @@ Draft a Nygard-format ADR from a TASK issue, present it for human confirmation, 
 
 ## Prerequisites
 
-You need a TASK issue number for the decision to document. If not provided, ask for it.
+This skill is typically invoked from `/implement` with the TASK already in context. If invoked standalone, you need the TASK issue number — ask for it if not provided.
 
 ## Steps
 
@@ -63,7 +63,7 @@ Accepted
 
 - Use today's date for the `Date` field.
 - If an **Alternatives pointer** was found in Step 1, append an `## Alternatives Considered` section after `Consequences`. If the pointer is a link or issue reference, include it as-is. If the pointer is inline content in the TASK body, summarise it. Do not invent alternatives that are not present in the TASK body.
-- If a **Supersession pointer** was found in Step 1, keep `Status` as `Accepted` and add a note `Supersedes NNN-old-slug` on a second line under Status. The old ADR is updated in Step 5.
+- If a **Supersession pointer** was found in Step 1, keep `Status` as `Accepted` and add `Supersedes [NNN-old-slug](NNN-old-slug.md)` on a second line under Status. The old ADR is updated in Step 5.
 
 Present the full draft to the human. Say: "Here is the ADR draft. Confirm to write it, or request changes."
 
@@ -71,6 +71,37 @@ Wait for explicit confirmation. If the human requests changes, apply them and sh
 
 ### 4. Write the ADR file
 
+1. If `docs/adr/` does not exist, create it:
+   ```bash
+   mkdir -p docs/adr/
+   ```
+
+2. Derive the kebab-case slug from the decision name (lowercase, spaces and special characters replaced with hyphens). For example, `Use PostgreSQL for Storage` → `use-postgresql-for-storage`.
+
+3. Write the confirmed ADR content to:
+   ```
+   docs/adr/NNN-kebab-slug.md
+   ```
+
+4. Confirm the file was written by showing its path to the human.
+
 ### 5. Handle supersession (if applicable)
 
+If a **Supersession pointer** was found in Step 1:
+
+1. Identify the old ADR file in `docs/adr/` by its number (e.g. `Supersedes: 003` → find `docs/adr/003-*.md`).
+2. Open the old ADR file and locate its `## Status` section.
+3. Replace the current status value with:
+   ```
+   Superseded by [NNN-new-slug](NNN-new-slug.md)
+   ```
+   where `NNN` and `new-slug` refer to the ADR just written in Step 4.
+4. Write the updated file back. Do not change any other content in the old ADR.
+5. Confirm the supersession update to the human by showing the old file path and the new Status line.
+
 ## Hard rules
+
+- Never write the ADR file without explicit human confirmation of the draft.
+- Never modify any file other than the target ADR and the superseded ADR (if applicable).
+- Never invent rationale, alternatives, or consequences that are not present in the TASK body or confirmed by the human.
+- If `docs/adr/` contains files that do not follow the `NNN-slug.md` naming pattern, ignore them when determining the next number.
