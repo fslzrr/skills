@@ -13,6 +13,17 @@ You need a TASK issue number for the decision to document. If not provided, ask 
 
 ### 1. Read the TASK issue
 
+The TASK issue body is already in context. Extract from it:
+
+- **Decision name**: the human-readable name of the architectural decision (derive from the issue title if not explicit in the body)
+- **Rationale**: why this decision is being made — look for a "Rationale", "Why", or "Decision" section in the body
+- **Alternatives pointer**: a reference to alternatives considered — look for an "Alternatives" section or a link to another issue/document
+- **Supersession pointer**: whether this ADR supersedes an existing one — look for a "Supersedes" field referencing an ADR number (e.g. `Supersedes: 003`)
+
+If the TASK body is not in context, fetch it with `gh issue view <number> --json title,body,labels`.
+
+If any of these fields are absent or ambiguous, ask the human one targeted question before continuing. Do not guess.
+
 ### 2. Determine the next ADR number
 
 ### 3. Draft the Nygard ADR and present for review
