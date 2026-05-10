@@ -76,7 +76,17 @@ Use `/issues` to create a child issue with:
 <!-- Files, modules, systems this TASK touches -->
 ```
 
-### 5. Update the PRD state
+### 5. Create ADR TASK issues
+
+If the PRD contains an **Identified ADRs** section, create one TASK issue per entry in that section:
+
+- **Labels**: `task,adr` (no `ai-ready` or `human-ready` — the `adr` label is the routing signal)
+- **Body**: copy the ADR entry verbatim from the PRD into the task body — do not expand, interpret, or rewrite it; `/document` owns all content drafting
+- **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
+
+Use `/issues` to create each ADR TASK issue.
+
+### 6. Update the PRD state
 
 After all TASKs are created, use `/issues` to transition the PRD from `in-backlog` to `in-progress`.
 
