@@ -21,9 +21,12 @@ ai-ready, human-ready, ai-in-progress, human-in-progress, in-code-review
 
 # Cross-cutting
 blocked, cancelled
+
+# Special tasks
+adr
 ```
 
-Use `gh label list` to check. For any missing label, create it with `gh label create` before proceeding. Choose distinct colors that make state visually clear (grey for triage, orange for in-backlog, yellow for ready, green for in-progress, blue for in-code-review, red for blocked and cancelled, purple for prd, pink for task).
+Use `gh label list` to check. For any missing label, create it with `gh label create` before proceeding. Choose distinct colors that make state visually clear (grey for triage, orange for in-backlog, yellow for ready, green for in-progress, blue for in-code-review, red for blocked and cancelled, purple for prd, pink for task, teal for adr).
 
 ## State machines
 
