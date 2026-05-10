@@ -22,7 +22,17 @@ Before writing a single line of the PRD, explore the codebase extensively:
 
 This exploration directly feeds the `Implementation Decisions` section of the PRD.
 
-### 2. Draft the PRD
+### 2. Identify architectural decisions
+
+Before drafting, scan the codebase exploration findings for architectural decisions worth recording. Apply all three criteria — a decision must satisfy all three to qualify:
+
+1. **Constrains interaction** — it determines how multiple skills or system layers must relate to each other (not a local implementation detail).
+2. **Costly to reverse** — unwinding it later would require changes across multiple components or would break established interfaces.
+3. **Chosen over a notable alternative for non-obvious reasons** — a reasonable engineer might have picked differently without this context.
+
+Note every qualifying decision found. The results feed into the PRD draft in the next step.
+
+### 3. Draft the PRD
 
 Map the interview narrative and codebase findings to each section of the PRD template.
 
@@ -70,13 +80,13 @@ Do not ask multiple follow-up questions at once. Resolve gaps one at a time.
 <!-- Anything else relevant -->
 ```
 
-### 2. Show the draft to the human
+### 4. Show the draft to the human
 
 Present the fully populated PRD draft. Say: "Here is the PRD draft based on our interview. Review it and confirm it is correct before I publish it to GitHub. You can request edits to any section."
 
 Wait for explicit confirmation. If the human requests changes, apply them and show the updated draft. Repeat until confirmed.
 
-### 3. Publish to GitHub
+### 5. Publish to GitHub
 
 Once confirmed, use `/issues` to create the GitHub issue:
 - **Title**: a concise, descriptive title derived from the Problem Statement (not the Solution)
