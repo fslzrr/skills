@@ -26,7 +26,48 @@ If any of these fields are absent or ambiguous, ask the human one targeted quest
 
 ### 2. Determine the next ADR number
 
+List the files in `docs/adr/`:
+
+```bash
+ls docs/adr/ 2>/dev/null
+```
+
+- If the directory does not exist or is empty, the next number is `001`.
+- Otherwise, find the highest existing three-digit prefix (e.g. `003-some-title.md` → `003`) and increment by one. The next number must always be zero-padded to three digits (e.g. `004`).
+
 ### 3. Draft the Nygard ADR and present for review
+
+Using the fields extracted in Step 1 and the number from Step 2, compose the ADR in Nygard format:
+
+```markdown
+# NNN. Decision Name
+
+Date: YYYY-MM-DD
+
+## Status
+
+Accepted
+
+## Context
+
+<Why this decision is needed. What forces are at play. Derived from the Rationale field.>
+
+## Decision
+
+<The decision that was made, stated clearly and directly.>
+
+## Consequences
+
+<What becomes easier or harder as a result. Trade-offs, follow-up work, risks.>
+```
+
+- Use today's date for the `Date` field.
+- If an **Alternatives pointer** was found in Step 1, append an `## Alternatives Considered` section after `Consequences`. If the pointer is a link or issue reference, include it as-is. If the pointer is inline content in the TASK body, summarise it. Do not invent alternatives that are not present in the TASK body.
+- If a **Supersession pointer** was found in Step 1, keep `Status` as `Accepted` and add a note `Supersedes NNN-old-slug` on a second line under Status. The old ADR is updated in Step 5.
+
+Present the full draft to the human. Say: "Here is the ADR draft. Confirm to write it, or request changes."
+
+Wait for explicit confirmation. If the human requests changes, apply them and show the updated draft. Repeat until confirmed.
 
 ### 4. Write the ADR file
 
