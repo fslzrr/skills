@@ -1,32 +1,29 @@
 ---
 name: issues
-description: "(fslzrr) Manages GitHub issues for the software factory — creates, reads, updates, and lists PRD and TASK issues; transitions states via labels; shows a status dashboard; and auto-creates missing factory labels. TRIGGER when: user says 'show status', 'list issues', `what's in progress`, 'update issue #N', 'mark as blocked', 'create an issue', 'close this issue', or any other GitHub issue management request."
+description: "(fslzrr) Manages GitHub issues for the software factory — creates, reads, updates, and lists PRD and TASK issues; transitions states via labels; shows a status dashboard; and recovers missing labels on demand during write operations. TRIGGER when: user says 'show status', 'list issues', `what's in progress`, 'update issue #N', 'mark as blocked', 'create an issue', 'close this issue', or any other GitHub issue management request."
 ---
 
 Manage GitHub issues for the software factory. You are the authoritative interface between the factory and GitHub — you understand what every label means, what transitions are valid, and what state each issue should be in.
 
-## Label setup (run before every operation)
+## Label reference
 
-Before doing anything, check that all required factory labels exist on this repository:
+All 13 factory labels. This table is the single source of truth for label recovery — do not invent labels outside it.
 
-```
-# Issue type
-prd, task
-
-# PRD states
-needs-triage, in-backlog, in-progress
-
-# TASK states
-ai-ready, human-ready, ai-in-progress, human-in-progress, in-code-review
-
-# Cross-cutting
-blocked, cancelled
-
-# Special tasks
-adr
-```
-
-Use `gh label list` to check. For any missing label, create it with `gh label create` before proceeding. Choose distinct colors that make state visually clear (grey for triage, orange for in-backlog, yellow for ready, green for in-progress, blue for in-code-review, red for blocked and cancelled, purple for prd, pink for task, teal for adr).
+| name | color | description |
+|---|---|---|
+| `prd` | `8B5CF6` | Product Requirements Document |
+| `task` | `EC4899` | Implementation task |
+| `needs-triage` | `9CA3AF` | Awaiting triage |
+| `in-backlog` | `F97316` | Triaged, in backlog |
+| `in-progress` | `10B981` | Actively being worked on |
+| `ai-ready` | `FCD34D` | Ready for AI implementation |
+| `human-ready` | `FDE68A` | Ready for human implementation |
+| `ai-in-progress` | `34D399` | AI is implementing |
+| `human-in-progress` | `6EE7B7` | Human is implementing |
+| `in-code-review` | `60A5FA` | PR open, awaiting review |
+| `blocked` | `EF4444` | Blocked by a dependency or issue |
+| `cancelled` | `F87171` | Abandoned, not completed |
+| `adr` | `2DD4BF` | Architecture Decision Record |
 
 ## State machines
 
@@ -52,6 +49,19 @@ in-code-review    →  [closed]            (GitHub auto-closes on PR merge)
 ### Cross-cutting labels
 - `blocked`: add/remove without changing the state label. Always record a reason comment when adding.
 - `cancelled`: add before closing to distinguish abandonment from completion.
+
+## Label error-recovery
+
+Apply this procedure **only** when a write operation (`create-prd`, `create-task`, `update-state`, `add-blocked`, `remove-blocked`) fails with a label-related error (e.g. label does not exist).
+
+1. Run `gh label list --limit 50` and collect the names of all existing labels.
+2. Identify which labels the failed operation needed but are missing from the list.
+3. For each missing label:
+   - Look it up in the **Label reference** table above. If it is not in the table, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
+   - Run `gh label create "<name>" --color "<color>" --description "<description>"` using the exact values from the table.
+   - Notify the user: "Created missing label: `<name>`."
+4. Retry the original operation **once**.
+5. If the retry also fails, surface the error as-is and stop. Do not retry again.
 
 ## Procedures
 
