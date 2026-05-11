@@ -14,8 +14,9 @@ You need an `ai-ready` TASK issue number. If not provided, ask for it.
 ### Setup
 
 1. Use `/issues` to transition the TASK from `ai-ready` → `ai-in-progress`.
-2. Use `/issues` to read the full TASK content: goal, acceptance criteria, affected areas, testing approach, parent PRD.
-3. **Check for the `adr` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below instead of the TDD loop.
+2. Read `docs/adr/` once per session before planning the implementation. If the directory does not exist or is empty, proceed without constraints. If ADRs exist, treat every recorded decision as a hard constraint throughout this implementation.
+3. Use `/issues` to read the full TASK content: goal, acceptance criteria, affected areas, testing approach, parent PRD.
+4. **Check for the `adr` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below instead of the TDD loop.
 
 ---
 
@@ -39,62 +40,62 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ### Plan (TDD path — skip if `adr` label present)
 
-4. Map each acceptance criterion to one SUBTASK. Each SUBTASK is one RED/GREEN/REFACTOR cycle.
-5. Present the SUBTASK plan to the human:
+5. Map each acceptance criterion to one SUBTASK. Each SUBTASK is one RED/GREEN/REFACTOR cycle.
+6. Present the SUBTASK plan to the human:
    - List each SUBTASK with its corresponding acceptance criterion
    - Proposed order of implementation (dependencies first)
    Say: "Here is my plan for implementing this TASK as SUBTASKs. Confirm or adjust the order before I begin."
-6. Wait for explicit human approval. Apply any adjustments.
+7. Wait for explicit human approval. Apply any adjustments.
 
 ### Execute (repeat for each SUBTASK)
 
-7. **Follow the `/tdd` procedure** for this SUBTASK's behavior.
+8. **Follow the `/tdd` procedure** for this SUBTASK's behavior.
    - If `/tdd` cannot make tests pass after a genuine attempt, stop. Explain the blocker to the human and wait for guidance before continuing.
 
-8. **Follow the `/review` procedure** on the changes made during this SUBTASK.
+9. **Follow the `/review` procedure** on the changes made during this SUBTASK.
 
    - If verdict is **FAIL** (blocking findings exist):
      - Record the feedback
-     - Return to step 7 (`/tdd` step c — implementation) with the blocking findings as explicit constraints
+     - Return to step 8 (`/tdd` step c — implementation) with the blocking findings as explicit constraints
      - If this is the **3rd consecutive FAIL on the same SUBTASK**: stop. Present all accumulated blocking feedback to the human and wait for guidance.
 
    - If verdict is **PASS** (zero blocking findings):
      - Record any advisory findings in the advisory log
-     - Continue to step 9
+     - Continue to step 10
 
-9. **Commit the SUBTASK**:
-   ```bash
-   git add <affected files>
-   git commit -m "<clear description of what this SUBTASK implements>"
-   ```
-   One atomic commit per SUBTASK. Do not batch multiple SUBTASKs into one commit.
+10. **Commit the SUBTASK**:
+    ```bash
+    git add <affected files>
+    git commit -m "<clear description of what this SUBTASK implements>"
+    ```
+    One atomic commit per SUBTASK. Do not batch multiple SUBTASKs into one commit.
 
-10. **Run all new or modified tests** and confirm everything is GREEN before starting the next SUBTASK.
+11. **Run all new or modified tests** and confirm everything is GREEN before starting the next SUBTASK.
 
 ### Full suite check
 
-11. After all SUBTASKs are committed, run the **full test suite**.
-    - If it fails on something **within scope** of this TASK: treat it as a new SUBTASK. Return to step 7.
+12. After all SUBTASKs are committed, run the **full test suite**.
+    - If it fails on something **within scope** of this TASK: treat it as a new SUBTASK. Return to step 8.
     - If it fails on something **out of scope**: stop. Explain what is failing, why fixing it would go out of scope, and wait for the human to decide.
 
 ### Pre-PR gate
 
-12. Present the **advisory log** accumulated across all SUBTASKs:
+13. Present the **advisory log** accumulated across all SUBTASKs:
     "Here are the advisory findings from the implementation. None of these are blocking, but they are genuine improvements. Do you want to address any before opening the PR?"
     Wait for the human's decision. If they want changes, implement them following the same RED/GREEN/REFACTOR discipline.
 
-13. Ask: "Implementation is complete and all tests are GREEN. Shall I open the PR?"
+14. Ask: "Implementation is complete and all tests are GREEN. Shall I open the PR?"
     Wait for explicit confirmation.
 
 ### PR and handoff
 
-14. Open the PR:
+15. Open the PR:
     - Title: derived from the TASK goal
     - Body: include a summary of what was implemented and `closes #<TASK-number>`
 
-15. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
+16. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
 
-16. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch. The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
+17. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch. The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
 
 ## Hard rules
 

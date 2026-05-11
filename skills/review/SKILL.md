@@ -5,6 +5,13 @@ description: "(fslzrr) Reviews staged or specified code changes against a fixed 
 
 Review the staged or specified code changes and produce a structured verdict.
 
+## ADR guard
+
+Before reviewing, read `docs/adr/` once per session:
+
+- If the directory does not exist or is empty, proceed without constraints.
+- If ADRs exist, treat every recorded decision as a hard constraint. Flag any change that contradicts an ADR as a BLOCKING finding.
+
 ## What to review
 
 If a path or diff is specified, review those changes. Otherwise, review all staged changes (`git diff --staged`).

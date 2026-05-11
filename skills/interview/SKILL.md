@@ -5,6 +5,13 @@ description: "(fslzrr) Conducts a relentless requirements interview — one ques
 
 Conduct a relentless requirements interview until you and the human have reached a complete, shared understanding of what needs to be built. Nothing should be left ambiguous or deferred to AI judgment.
 
+## ADR guard
+
+Before exploring the codebase, read `docs/adr/` once per session:
+
+- If the directory does not exist or is empty, proceed without constraints.
+- If ADRs exist, treat every recorded decision as a hard constraint. Do not propose, implement, or accept approaches that contradict them.
+
 ## How to conduct the interview
 
 - Ask **one question at a time**. Wait for the answer before asking the next.
