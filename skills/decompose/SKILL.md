@@ -18,6 +18,7 @@ Use `/issues` to read the full PRD content. Pay close attention to:
 - Acceptance Criteria or Testing Decisions (these inform TASK acceptance criteria)
 - Out of Scope (ensure no TASK crosses this boundary)
 - Dependencies (some TASKs may be blocked by these)
+- **Identified ADRs** (each entry becomes one ADR TASK — see step 5)
 
 ### 2. Group user stories into vertical slices
 
@@ -75,7 +76,17 @@ Use `/issues` to create a child issue with:
 <!-- Files, modules, systems this TASK touches -->
 ```
 
-### 5. Update the PRD state
+### 5. Create ADR TASK issues
+
+If the PRD contains an **Identified ADRs** section, create one TASK issue per entry in that section:
+
+- **Labels**: `task,adr,ai-ready` (or `human-ready` if a human should author it)
+- **Body**: copy the ADR entry verbatim from the PRD into the task body — do not expand, interpret, or rewrite it; `/document` owns all content drafting
+- **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
+
+Use `/issues` to create each ADR TASK issue.
+
+### 6. Update the PRD state
 
 After all TASKs are created, use `/issues` to transition the PRD from `in-backlog` to `in-progress`.
 
