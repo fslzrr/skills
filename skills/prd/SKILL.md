@@ -9,6 +9,13 @@ Structure the confirmed findings from a `/interview` session into a PRD and publ
 
 This skill requires a confirmed `/interview` narrative summary. If you do not have one in the current conversation, tell the human to run `/interview` first.
 
+## ADR guard
+
+Before exploring the codebase, read `docs/adr/` once per session:
+
+- If the directory does not exist or is empty, proceed without constraints.
+- If ADRs exist, treat every recorded decision as a hard constraint. Do not propose, implement, or accept approaches that contradict them.
+
 ## Steps
 
 ### 1. Explore the codebase
