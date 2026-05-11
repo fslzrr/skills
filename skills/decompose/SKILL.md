@@ -80,7 +80,7 @@ Use `/issues` to create a child issue with:
 
 If the PRD contains an **Identified ADRs** section, create one TASK issue per entry in that section:
 
-- **Labels**: `task,adr` (no `ai-ready` or `human-ready` — the `adr` label is the routing signal)
+- **Labels**: `task,adr,ai-ready` (or `human-ready` if a human should author it)
 - **Body**: copy the ADR entry verbatim from the PRD into the task body — do not expand, interpret, or rewrite it; `/document` owns all content drafting
 - **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
 
