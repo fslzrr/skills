@@ -5,6 +5,13 @@ description: "(fslzrr) Executes a single RED/GREEN/REFACTOR cycle for a describe
 
 Execute a RED → GREEN → REFACTOR cycle for a single behavior.
 
+## ADR guard
+
+Before exploring the codebase, read `docs/adr/` once per session:
+
+- If the directory does not exist or is empty, proceed without constraints.
+- If ADRs exist, treat every recorded decision as a hard constraint. Do not propose, implement, or accept approaches that contradict them.
+
 ## Input
 
 You need a clear description of the behavior to implement. If it was not provided, ask for it before starting.
