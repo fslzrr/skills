@@ -5,29 +5,6 @@ description: "(fslzrr) Manages GitHub issues for the software factory — create
 
 Manage GitHub issues for the software factory. You are the authoritative interface between the factory and GitHub — you understand what every label means, what transitions are valid, and what state each issue should be in.
 
-## Label setup (run before every operation)
-
-Before doing anything, check that all required factory labels exist on this repository:
-
-```
-# Issue type
-prd, task
-
-# PRD states
-needs-triage, in-backlog, in-progress
-
-# TASK states
-ai-ready, human-ready, ai-in-progress, human-in-progress, in-code-review
-
-# Cross-cutting
-blocked, cancelled
-
-# Special tasks
-adr
-```
-
-Use `gh label list` to check. For any missing label, create it with `gh label create` before proceeding. Choose distinct colors that make state visually clear (grey for triage, orange for in-backlog, yellow for ready, green for in-progress, blue for in-code-review, red for blocked and cancelled, purple for prd, pink for task, teal for adr).
-
 ## State machines
 
 ### PRD issues (labeled `prd`)
