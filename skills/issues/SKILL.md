@@ -50,6 +50,19 @@ in-code-review    →  [closed]            (GitHub auto-closes on PR merge)
 - `blocked`: add/remove without changing the state label. Always record a reason comment when adding.
 - `cancelled`: add before closing to distinguish abandonment from completion.
 
+## Label error-recovery
+
+Apply this procedure **only** when a write operation (`create-prd`, `create-task`, `update-state`, `add-blocked`, `remove-blocked`) fails with a label-related error (e.g. label does not exist).
+
+1. Run `gh label list --limit 50` and collect the names of all existing labels.
+2. Identify which labels the failed operation needed but are missing from the list.
+3. For each missing label:
+   - Look it up in the **Label reference** table above. If it is not in the table, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
+   - Run `gh label create "<name>" --color "<color>" --description "<description>"` using the exact values from the table.
+   - Notify the user: "Created missing label: `<name>`."
+4. Retry the original operation **once**.
+5. If the retry also fails, surface the error as-is and stop. Do not retry again.
+
 ## Procedures
 
 ### create-prd
