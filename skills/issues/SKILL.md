@@ -5,6 +5,26 @@ description: "(fslzrr) Manages GitHub issues for the software factory — create
 
 Manage GitHub issues for the software factory. You are the authoritative interface between the factory and GitHub — you understand what every label means, what transitions are valid, and what state each issue should be in.
 
+## Label reference
+
+All 13 factory labels. This table is the single source of truth for label recovery — do not invent labels outside it.
+
+| name | color | description |
+|---|---|---|
+| `prd` | `8B5CF6` | Product Requirements Document |
+| `task` | `EC4899` | Implementation task |
+| `needs-triage` | `9CA3AF` | Awaiting triage |
+| `in-backlog` | `F97316` | Triaged, in backlog |
+| `in-progress` | `10B981` | Actively being worked on |
+| `ai-ready` | `FCD34D` | Ready for AI implementation |
+| `human-ready` | `FDE68A` | Ready for human implementation |
+| `ai-in-progress` | `34D399` | AI is implementing |
+| `human-in-progress` | `6EE7B7` | Human is implementing |
+| `in-code-review` | `60A5FA` | PR open, awaiting review |
+| `blocked` | `EF4444` | Blocked by a dependency or issue |
+| `cancelled` | `F87171` | Abandoned, not completed |
+| `adr` | `2DD4BF` | Architecture Decision Record |
+
 ## State machines
 
 ### PRD issues (labeled `prd`)
