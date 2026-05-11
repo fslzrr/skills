@@ -125,9 +125,11 @@ List and filter issues. Examples:
 # All open PRDs
 gh issue list --label "prd" --state open
 
-# TASKs needing human attention
+# TASKs needing attention
 gh issue list --label "task,human-ready" --state open
 gh issue list --label "task,human-in-progress" --state open
+gh issue list --label "task,ai-ready" --state open
+gh issue list --label "task,ai-in-progress" --state open
 gh issue list --label "task,in-code-review" --state open
 
 # Blocked issues
@@ -146,7 +148,7 @@ Check whether all TASKs under a PRD are closed, and close the PRD if so:
 ### status-dashboard
 Show the current factory state:
 1. List all open PRDs grouped by state label (`needs-triage`, `in-backlog`, `in-progress`).
-2. List all open TASKs that need human attention: `human-ready`, `human-in-progress`, `in-code-review`.
+2. List all open TASKs that need attention: `human-ready`, `human-in-progress`, `ai-ready`, `ai-in-progress`, `in-code-review`.
 3. List all issues (PRD or TASK) with the `blocked` label.
 
 Format the output clearly with headers and issue numbers so the human can act on it immediately.
