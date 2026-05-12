@@ -52,7 +52,7 @@ in-code-review    →  [closed]            (GitHub auto-closes on PR merge)
 
 ## Label error-recovery
 
-Apply this procedure **only** when a write operation (`create-prd`, `create-task`, `update-state`, `add-blocked`, `remove-blocked`) fails with a label-related error (e.g. label does not exist).
+Apply this procedure **only** when a write operation (`create-prd`, `create-prd-stub`, `create-task`, `update-state`, `add-blocked`, `remove-blocked`) fails with a label-related error (e.g. label does not exist).
 
 1. Run `gh label list --limit 50` and collect the names of all existing labels.
 2. Identify which labels the failed operation needed but are missing from the list.
