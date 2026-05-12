@@ -106,9 +106,14 @@ Wait for explicit confirmation. If the human requests changes, apply them and sh
 
 ### 5. Publish to GitHub
 
-Once confirmed, use `/issues` to create the GitHub issue:
-- **Title**: a concise, descriptive title derived from the Problem Statement (not the Solution)
-- **Body**: the confirmed PRD content
-- **Labels**: `prd` and `needs-triage`
+Once confirmed, use `/issues` to publish the PRD. Fork on whether a stub issue number is present in the current conversation context:
 
-Report the created issue number and URL to the human.
+- **Stub exists** (an issue number was read or referenced earlier in this session):
+  1. Say: "I'll update stub #N with the full PRD — confirm?"
+  2. Wait for explicit confirmation.
+  3. Call `update-prd` with the stub number, the confirmed title, and the confirmed PRD body.
+
+- **No stub** (this is a fresh PRD):
+  1. Call `create-prd` with the confirmed title and PRD body.
+
+In both cases, report the issue number and URL to the human. Do not specify any labels — label ownership belongs entirely to `/issues`.
