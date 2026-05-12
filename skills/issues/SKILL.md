@@ -169,6 +169,7 @@ Show the current factory state:
 1. List all open PRDs grouped by state label (`needs-triage`, `in-backlog`, `in-progress`).
 2. List all open TASKs that need attention: `human-ready`, `human-in-progress`, `ai-ready`, `ai-in-progress`, `in-code-review`.
 3. List all issues (PRD or TASK) with the `blocked` label.
+4. For each `in-progress` PRD from step 1, use `read-issue` to fetch its full data. Scan the comments for one whose body starts with `Created child TASKs:`. If found, extract every `#N` issue number and run `gh issue view <N> --json state` for each. If every child is `CLOSED`, flag that PRD as `✓ all TASKs closed — ready to close`. If no such comment exists (legacy PRD), show nothing — no error.
 
 Format the output clearly with headers and issue numbers so the human can act on it immediately.
 
