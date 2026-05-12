@@ -75,6 +75,15 @@ gh issue create \
 ```
 Return the issue number and URL.
 
+### create-prd-stub
+Create a title-only PRD stub for an idea not yet ready for a full `/interview` session:
+```bash
+gh issue create \
+  --title "<title>" \
+  --label "prd,needs-triage"
+```
+No `--body` is passed. The stub lands in `needs-triage` awaiting a future `/interview`. Return the issue number and URL.
+
 ### create-task
 Create a TASK issue as a child of a PRD:
 ```bash
