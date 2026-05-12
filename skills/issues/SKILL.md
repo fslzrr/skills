@@ -66,7 +66,7 @@ Apply this procedure **only** when a write operation (`create-prd`, `create-task
 ## Procedures
 
 ### create-prd
-Create a PRD issue:
+Create a PRD issue when body content is available (post-`/interview` + `/prd`):
 ```bash
 gh issue create \
   --title "<title>" \
@@ -74,6 +74,8 @@ gh issue create \
   --label "prd,needs-triage"
 ```
 Return the issue number and URL.
+
+**Trigger heuristic:** use `create-prd` when body content is provided (after `/interview` + `/prd` have produced a full spec); use `create-prd-stub` when only a title is given.
 
 ### create-prd-stub
 Create a title-only PRD stub for an idea not yet ready for a full `/interview` session:
