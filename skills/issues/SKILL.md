@@ -52,7 +52,7 @@ in-code-review    →  [closed]            (GitHub auto-closes on PR merge)
 
 ## Label error-recovery
 
-Apply this procedure **only** when a write operation (`create-prd`, `create-prd-stub`, `create-task`, `update-state`, `add-blocked`, `remove-blocked`) fails with a label-related error (e.g. label does not exist).
+Apply this procedure **only** when a write operation (`create-prd`, `create-prd-stub`, `update-prd`, `create-task`, `update-state`, `add-blocked`, `remove-blocked`) fails with a label-related error (e.g. label does not exist).
 
 1. Run `gh label list --limit 50` and collect the names of all existing labels.
 2. Identify which labels the failed operation needed but are missing from the list.
@@ -71,7 +71,7 @@ Create a PRD issue when body content is available (post-`/interview` + `/prd`):
 gh issue create \
   --title "<title>" \
   --body "<PRD template content>" \
-  --label "prd,needs-triage"
+  --label "prd,in-backlog"
 ```
 Return the issue number and URL.
 
@@ -85,6 +85,14 @@ gh issue create \
   --label "prd,needs-triage"
 ```
 No `--body` is passed. The stub lands in `needs-triage` awaiting a future `/interview`. Return the issue number and URL.
+
+### update-prd
+Update an existing PRD stub with the full title and body from a completed `/interview` + `/prd` session, then move it to `in-backlog`:
+```bash
+gh issue edit <number> --title "<title>" --body "<PRD template content>"
+gh issue edit <number> --remove-label "needs-triage" --add-label "in-backlog"
+```
+The second command silently succeeds even if `needs-triage` is not present (GitHub ignores removing a label that isn't on the issue). Return the issue number and URL.
 
 ### create-task
 Create a TASK issue as a child of a PRD:
