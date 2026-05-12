@@ -71,7 +71,7 @@ Create a PRD issue when body content is available (post-`/interview` + `/prd`):
 gh issue create \
   --title "<title>" \
   --body "<PRD template content>" \
-  --label "prd,needs-triage"
+  --label "prd,in-backlog"
 ```
 Return the issue number and URL.
 
