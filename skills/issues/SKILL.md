@@ -52,7 +52,7 @@ in-code-review    →  [closed]            (GitHub auto-closes on PR merge)
 
 ## Label error-recovery
 
-Apply this procedure **only** when a write operation (`create-prd`, `create-task`, `update-state`, `add-blocked`, `remove-blocked`) fails with a label-related error (e.g. label does not exist).
+Apply this procedure **only** when a write operation (`create-prd`, `create-prd-stub`, `create-task`, `update-state`, `add-blocked`, `remove-blocked`) fails with a label-related error (e.g. label does not exist).
 
 1. Run `gh label list --limit 50` and collect the names of all existing labels.
 2. Identify which labels the failed operation needed but are missing from the list.
@@ -66,7 +66,7 @@ Apply this procedure **only** when a write operation (`create-prd`, `create-task
 ## Procedures
 
 ### create-prd
-Create a PRD issue:
+Create a PRD issue when body content is available (post-`/interview` + `/prd`):
 ```bash
 gh issue create \
   --title "<title>" \
@@ -74,6 +74,17 @@ gh issue create \
   --label "prd,needs-triage"
 ```
 Return the issue number and URL.
+
+**Trigger heuristic:** use `create-prd` when body content is provided (after `/interview` + `/prd` have produced a full spec); use `create-prd-stub` when only a title is given.
+
+### create-prd-stub
+Create a title-only PRD stub for an idea not yet ready for a full `/interview` session:
+```bash
+gh issue create \
+  --title "<title>" \
+  --label "prd,needs-triage"
+```
+No `--body` is passed. The stub lands in `needs-triage` awaiting a future `/interview`. Return the issue number and URL.
 
 ### create-task
 Create a TASK issue as a child of a PRD:
