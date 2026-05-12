@@ -93,7 +93,19 @@ If the PRD contains an **Identified ADRs** section, create one TASK issue per en
 
 Use `/issues` to create each ADR TASK issue.
 
-### 6. Update the PRD state
+### 6. Post the child-registry summary comment
+
+After all TASKs (regular and ADR) are created, collect every TASK number and title produced in steps 4 and 5. Post a single comment on the PRD issue:
+
+```bash
+gh issue comment <PRD-number> --body "Created child TASKs:
+- #N title
+- #M title"
+```
+
+List every created TASK — ARD TASKs first, then regular TASKs — in the order they were created.
+
+### 7. Update the PRD state
 
 After all TASKs are created, use `/issues` to transition the PRD from `in-backlog` to `in-progress`.
 
