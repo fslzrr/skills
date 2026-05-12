@@ -102,7 +102,7 @@ gh issue create \
   --body "<TASK template content>" \
   --label "task,<ai-ready|human-ready>"
 ```
-Then link it to the parent PRD by adding a comment on the PRD referencing the TASK, or using GitHub's sub-issues feature if available. (prefer sub-issues feature) Return the issue number and URL.
+Return the issue number and URL.
 
 ### read-issue
 Read an issue's full content:
