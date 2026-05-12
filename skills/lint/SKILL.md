@@ -1,6 +1,6 @@
 ---
 name: lint
-description: "(fslzrr) Detects and runs project lint tooling on staged changes — check-only first, auto-fix on failure, re-stage fixed files, hard-stop when lint cannot be resolved. Silent skip when no tooling found. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint'."
+description: "(fslzrr) Detects and runs project lint tooling on staged changes — check-only first, auto-fix on failure, re-stage fixed files, hard-stop when lint cannot be resolved. Notifies user and skips when no tooling found. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint'."
 ---
 
 Detect and run the project's lint tooling on staged changes. Never invent tooling — only run commands the project has explicitly declared.
@@ -13,7 +13,7 @@ Use your judgment — if the project has wired up a lint command, find it. Also 
 
 Collect **all** lint commands found, not just one. Steps 2–6 will run each collected command in turn.
 
-If **no lint command is found**: skip silently. Emit nothing. Return control to the caller immediately.
+If **no lint command is found**: inform the user ("No lint tooling detected — skipping.") and return control to the caller immediately.
 
 ## Step 2 — Check-only run
 
@@ -64,4 +64,4 @@ Do not proceed to `/review`. Wait for the human to resolve the violations manual
 - Never mutate files during the check-only run (Step 2).
 - Never skip re-staging (Step 5) after a successful auto-fix.
 - Never proceed past a hard-stop without explicit human resolution.
-- If the project has no lint tooling, skip entirely — silence is the correct output.
+- If the project has no declared lint tooling, skip — but always tell the user.
