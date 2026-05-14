@@ -1,67 +1,65 @@
 ---
 name: lint
-description: "(fslzrr) Detects and runs project lint tooling on staged changes — check-only first, auto-fix on failure, re-stage fixed files, hard-stop when lint cannot be resolved. Notifies user and skips when no tooling found. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint'."
+description: "(fslzrr) Runs three ordered quality-gate buckets — format (fix + re-stage), lint (check-only → auto-fix → hard-stop), typecheck (project-wide → hard-stop) — each discovered independently from declared project scripts; notifies and skips missing buckets; fail-fast on hard-stop. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint', 'run format', 'typecheck'."
 ---
 
-Detect and run the project's lint tooling on staged changes. Never invent tooling — only run commands the project has explicitly declared.
+Detect and run the project's quality tooling on staged changes. Never invent tooling — only run commands the project has explicitly declared. Execute three ordered buckets: **format → lint → typecheck**. If any bucket produces a hard-stop, do not run subsequent buckets.
 
-## Step 1 — Detect tooling
+## Step 1 — Discover tooling
 
-Look at the project's dependency manifests, script definitions, and build files for any declared lint command or target. Good places to check: the `scripts` section of a package manager file, build file targets (e.g. a `lint` target in a `Makefile` or `Taskfile`), or a lint tool section in a dependency config.
+Scan the project's dependency manifests, script definitions, and build files (e.g. `scripts` in a package manager file, `Makefile` targets, `Taskfile` targets) for commands in three categories:
 
-Use your judgment — if the project has wired up a lint command, find it. Also check whether an auto-fix variant of that command exists (e.g. a `lint:fix` script alongside a `lint` script, or a `fix` target alongside a `lint` target).
+- **Format commands**: any declared formatter or explicit format/fix-mode variant
+- **Lint commands**: any declared linter, plus its auto-fix variant if declared
+- **Typecheck commands**: any declared type-checker
 
-Collect **all** lint commands found, not just one. Steps 2–6 will run each collected command in turn.
+Use judgment to identify which commands belong to which category. Do not guess tool names — only use commands the project has explicitly declared.
 
-If **no lint command is found**: inform the user ("No lint tooling detected — skipping.") and return control to the caller immediately.
+## Bucket 1 — Format
 
-## Step 2 — Check-only run
+*Never produces a hard-stop. If no format command is declared, emit "No format tooling detected — skipping." and continue to Bucket 2.*
 
-Run each detected linter in check-only mode (no file mutations). Capture the full output for each.
+1. Run the declared format command in fix mode. Pass the staged file paths as arguments if the formatter supports it; otherwise run it project-wide.
+2. Identify any files the formatter changed (diff the working tree against the index after the run).
+3. Re-stage all changed files: `git add <files changed by formatter>`.
+4. Emit a one-line summary, e.g.: "Format applied and re-staged. Continuing."
 
-- If **all linters pass**: done. Emit nothing. Return control to the caller.
-- If **any linter fails**: proceed to Step 3.
+## Bucket 2 — Lint
 
-## Step 3 — Auto-fix attempt
+*If no lint command is declared, emit "No lint tooling detected — skipping." and continue to Bucket 3.*
 
-For each linter that failed:
+1. Run each detected linter in check-only mode (no file mutations). Capture the full output.
+   - If **all pass**: done with this bucket. Emit nothing. Continue to Bucket 3.
+   - If **any fail**: proceed to step 2.
+2. For each failing linter: if an auto-fix command exists, run it. If no auto-fix exists, leave it as-is.
+3. Re-run the check-only command for every linter that was failing.
+   - If **all pass**: proceed to step 4.
+   - If **any still fail**: hard-stop (step 5).
+4. Re-stage fixed files: identify files the auto-fix changed, then `git add <those files>`. Emit: "Lint auto-fixed and re-staged. Continuing to /review." Continue to Bucket 3.
+5. **Hard-stop**: emit the full lint output for every linter still failing. Say: "Lint failed and could not be auto-fixed. Fix the violations above, then re-run `/lint` or signal readiness to continue." Do not proceed to Bucket 3.
 
-1. If an auto-fix command exists for that linter: run it now.
-2. If no auto-fix command exists for that linter: leave it as-is (it will be re-checked in Step 4 and will still fail).
+## Bucket 3 — Typecheck
 
-## Step 4 — Re-check
+*No auto-fix step. If no typecheck command is declared, emit "No typecheck tooling detected — skipping." and return control to the caller.*
 
-Re-run the check-only command for every linter that was failing in Step 2.
-
-- If **all pass**: proceed to Step 5.
-- If **any still fail**: proceed to Step 6 (hard-stop).
-
-## Step 5 — Re-stage fixed files
-
-Stage only the files modified by the auto-fix run. To identify them, diff the working tree against the index before and after the fix, then add only the changed paths:
-
-```bash
-git diff --name-only   # run before auto-fix to capture the delta afterward
-git add <files changed by auto-fix>
-```
-
-Emit a one-line summary, e.g.:
-> "Lint auto-fixed and re-staged. Continuing to /review."
-
-Return control to the caller.
-
-## Step 6 — Hard-stop
-
-Emit the full lint output for every linter that is still failing after the auto-fix attempt. Then say:
-
-> "Lint failed and could not be auto-fixed. Fix the violations above, then re-run `/lint` or signal readiness to continue."
-
-Do not proceed to `/review`. Wait for the human to resolve the violations manually or provide explicit guidance.
+1. Run the declared type-checker against the **entire project** (not staged files only).
+2. Capture the full output.
+   - If it **passes**: done. Emit nothing. Return control to the caller.
+   - If it **fails**: hard-stop. Emit the full typecheck output. Say: "Typecheck failed. Fix the type errors above, then re-run `/lint` or signal readiness to continue." Do not return control to the caller.
 
 ## Hard rules
 
-- Never run a lint command that is not explicitly declared in the project's scripts, dependency config, or Makefile. Do not assume a linter is installed just because its binary might exist on PATH.
-- Never mutate files during the check-only run (Step 2).
-- Never skip re-staging (Step 5) after a successful auto-fix.
+**Discovery (all buckets)**
+- Never run a command that is not explicitly declared in the project's scripts, dependency config, or build files. Do not assume a tool is installed just because its binary might exist on PATH.
+
+**Format bucket**
+- Always re-stage files the formatter changed. Never skip re-staging after a format run.
+
+**Lint bucket**
+- Never mutate files during the check-only run.
+- Always re-stage files the auto-fix changed. Never skip re-staging after a successful auto-fix.
 - Never proceed past a hard-stop without explicit human resolution.
-- If the project has no declared lint tooling, skip — but always tell the user.
+
+**Typecheck bucket**
+- Always run against the entire project, not staged files only.
+- Never proceed past a hard-stop without explicit human resolution.
