@@ -99,7 +99,7 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 ### PR and handoff
 
 16. Open the PR:
-    - Title: derived from the TASK goal
+    - Title: mirror the TASK title exactly
     - Body: include a summary of what was implemented and `closes #<TASK-number>`
 
 17. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
