@@ -31,7 +31,7 @@ b. **Skip `/lint` and `/review`** — ADR tasks are prose documents, not code; n
 c. **Commit the ADR file** atomically — one commit for the ADR file, following the same one-atomic-commit-per-SUBTASK rule as regular TASKs:
    ```bash
    git add docs/adr/<adr-file>
-   git commit -m "<clear description of the decision recorded>"
+   git commit -m "docs(adr): <description of the decision recorded>"
    ```
 
 d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirmation, open PR, transition to `in-code-review`).
@@ -75,9 +75,9 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 11. **Commit the SUBTASK**:
     ```bash
     git add <affected files>
-    git commit -m "<clear description of what this SUBTASK implements>"
+    git commit -m "<type>(<scope>): <description>"
     ```
-    One atomic commit per SUBTASK. Do not batch multiple SUBTASKs into one commit.
+    Type and scope are determined independently per commit based on the nature of the change — left to AI judgment. One atomic commit per SUBTASK. Do not batch multiple SUBTASKs into one commit.
 
 12. **Run all new or modified tests** and confirm everything is GREEN before starting the next SUBTASK.
 
@@ -99,7 +99,7 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 ### PR and handoff
 
 16. Open the PR:
-    - Title: derived from the TASK goal
+    - Title: mirror the TASK title exactly
     - Body: include a summary of what was implemented and `closes #<TASK-number>`
 
 17. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
