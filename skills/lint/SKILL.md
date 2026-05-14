@@ -1,6 +1,6 @@
 ---
 name: lint
-description: "(fslzrr) Detects and runs project lint tooling on staged changes — check-only first, auto-fix on failure, re-stage fixed files, hard-stop when lint cannot be resolved. Notifies user and skips when no tooling found. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint'."
+description: "(fslzrr) Runs three ordered quality-gate buckets — format (fix + re-stage), lint (check-only → auto-fix → hard-stop), typecheck (project-wide → hard-stop) — each discovered independently from declared project scripts; silently skips missing buckets; fail-fast on hard-stop. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint', 'run format', 'typecheck'."
 ---
 
 Detect and run the project's quality tooling on staged changes. Never invent tooling — only run commands the project has explicitly declared. Execute three ordered buckets: **format → lint → typecheck**. If any bucket produces a hard-stop, do not run subsequent buckets.
@@ -49,8 +49,17 @@ Use judgment to identify which commands belong to which category. Do not guess t
 
 ## Hard rules
 
-- Never run a lint command that is not explicitly declared in the project's scripts, dependency config, or Makefile. Do not assume a linter is installed just because its binary might exist on PATH.
-- Never mutate files during the check-only run (Step 2).
-- Never skip re-staging (Step 5) after a successful auto-fix.
+**Discovery (all buckets)**
+- Never run a command that is not explicitly declared in the project's scripts, dependency config, or build files. Do not assume a tool is installed just because its binary might exist on PATH.
+
+**Format bucket**
+- Always re-stage files the formatter changed. Never skip re-staging after a format run.
+
+**Lint bucket**
+- Never mutate files during the check-only run.
+- Always re-stage files the auto-fix changed. Never skip re-staging after a successful auto-fix.
 - Never proceed past a hard-stop without explicit human resolution.
-- If the project has no declared lint tooling, skip — but always tell the user.
+
+**Typecheck bucket**
+- Always run against the entire project, not staged files only.
+- Never proceed past a hard-stop without explicit human resolution.
