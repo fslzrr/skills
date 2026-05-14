@@ -1,6 +1,6 @@
 ---
 name: lint
-description: "(fslzrr) Runs three ordered quality-gate buckets — format (fix + re-stage), lint (check-only → auto-fix → hard-stop), typecheck (project-wide → hard-stop) — each discovered independently from declared project scripts; silently skips missing buckets; fail-fast on hard-stop. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint', 'run format', 'typecheck'."
+description: "(fslzrr) Runs three ordered quality-gate buckets — format (fix + re-stage), lint (check-only → auto-fix → hard-stop), typecheck (project-wide → hard-stop) — each discovered independently from declared project scripts; notifies and skips missing buckets; fail-fast on hard-stop. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint', 'run format', 'typecheck'."
 ---
 
 Detect and run the project's quality tooling on staged changes. Never invent tooling — only run commands the project has explicitly declared. Execute three ordered buckets: **format → lint → typecheck**. If any bucket produces a hard-stop, do not run subsequent buckets.
@@ -17,16 +17,16 @@ Use judgment to identify which commands belong to which category. Do not guess t
 
 ## Bucket 1 — Format
 
-*Silently skipped if no format command is declared. Never produces a hard-stop.*
+*Never produces a hard-stop. If no format command is declared, emit "No format tooling detected — skipping." and continue to Bucket 2.*
 
-1. Run the declared format command in fix mode on staged files only.
+1. Run the declared format command in fix mode. Pass the staged file paths as arguments if the formatter supports it; otherwise run it project-wide.
 2. Identify any files the formatter changed (diff the working tree against the index after the run).
 3. Re-stage all changed files: `git add <files changed by formatter>`.
 4. Emit a one-line summary, e.g.: "Format applied and re-staged. Continuing."
 
 ## Bucket 2 — Lint
 
-*Silently skipped if no lint command is declared.*
+*If no lint command is declared, emit "No lint tooling detected — skipping." and continue to Bucket 3.*
 
 1. Run each detected linter in check-only mode (no file mutations). Capture the full output.
    - If **all pass**: done with this bucket. Emit nothing. Continue to Bucket 3.
@@ -40,7 +40,7 @@ Use judgment to identify which commands belong to which category. Do not guess t
 
 ## Bucket 3 — Typecheck
 
-*Silently skipped if no typecheck command is declared. No auto-fix step.*
+*No auto-fix step. If no typecheck command is declared, emit "No typecheck tooling detected — skipping." and return control to the caller.*
 
 1. Run the declared type-checker against the **entire project** (not staged files only).
 2. Capture the full output.
