@@ -31,7 +31,7 @@ b. **Skip `/lint` and `/review`** — ADR tasks are prose documents, not code; n
 c. **Commit the ADR file** atomically — one commit for the ADR file, following the same one-atomic-commit-per-SUBTASK rule as regular TASKs:
    ```bash
    git add docs/adr/<adr-file>
-   git commit -m "<clear description of the decision recorded>"
+   git commit -m "docs(adr): <description of the decision recorded>"
    ```
 
 d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirmation, open PR, transition to `in-code-review`).
