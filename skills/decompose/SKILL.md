@@ -39,7 +39,7 @@ Do not create one TASK per user story. Group related stories that share the same
 ### 3. Propose the TASK list
 
 Present the proposed decomposition to the human. For each TASK:
-- **Title**: clear, action-oriented
+- **Title**: must follow conventional commits format — `type(scope): description` or `type: description`. Use the full vocabulary: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `build`, `ci`, `revert`. Scope is optional but encouraged when the TASK targets a single skill or module. ADR TASKs always use `docs(adr): description` — no judgment needed.
 - **User stories covered**: list which user stories from the PRD are included
 - **Why grouped**: explain the vertical context these stories share — what makes them one slice
 - **Draft acceptance criteria**: specific, testable conditions derived from the included user stories
