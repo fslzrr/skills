@@ -75,9 +75,9 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 11. **Commit the SUBTASK**:
     ```bash
     git add <affected files>
-    git commit -m "<clear description of what this SUBTASK implements>"
+    git commit -m "<type>(<scope>): <description>"
     ```
-    One atomic commit per SUBTASK. Do not batch multiple SUBTASKs into one commit.
+    Type and scope are determined independently per commit based on the nature of the change — left to AI judgment. One atomic commit per SUBTASK. Do not batch multiple SUBTASKs into one commit.
 
 12. **Run all new or modified tests** and confirm everything is GREEN before starting the next SUBTASK.
 
