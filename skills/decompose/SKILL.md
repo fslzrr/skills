@@ -56,32 +56,9 @@ Once approved, for each TASK:
 
 Use `/issues` to create a child issue with:
 - **Labels**: `task` and `ai-ready` or `human-ready` (as approved)
-- **Body**: TASK template populated with the approved content
 - **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
 
-**TASK template:**
-```markdown
-## Context
-<!-- Why this TASK exists within the parent PRD -->
-
-## Goal
-<!-- What this specific vertical slice achieves -->
-
-## Acceptance Criteria
-<!-- Specific, testable conditions — each becomes one SUBTASK in /implement -->
-
-## Blockers / Dependencies
-<!-- Other TASKs that must complete before this one -->
-
-## Parent PRD
-<!-- Link to parent PRD issue -->
-
-## Testing Approach
-<!-- How this slice is tested end-to-end -->
-
-## Affected Areas
-<!-- Files, modules, systems this TASK touches -->
-```
+**TASK template:** Read `../issues/templates/task.md` and use it as the structural template for the issue body, filling in each section with the approved content.
 
 ### 5. Create ADR TASK issues
 
