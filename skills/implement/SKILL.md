@@ -1,9 +1,9 @@
 ---
 name: implement
-description: "(fslzrr) Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, runs /tdd, /lint, and /review per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says 'implement task #N', 'start implementing', 'work on this task' or 'implement this'."
+description: "(fslzrr) Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, spawns the programmer/linter/reviewer subagents per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says 'implement task #N', 'start implementing', 'work on this task' or 'implement this'."
 ---
 
-Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestrator — you drive each SUBTASK through `/tdd`, `/lint`, and `/review`, manage the git history, and own the PR lifecycle.
+Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestrator — you drive each SUBTASK by spawning the `programmer`, `linter`, and `reviewer` subagents, manage the git history, and own the PR lifecycle. Subagents own their procedures (defined in their respective SKILL.md files); your job is to react to their return summaries, not to repeat their work.
 
 ## Prerequisites
 
@@ -26,7 +26,7 @@ When the TASK carries the `adr` label:
 
 a. **Call `/document`** — pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
 
-b. **Skip `/lint` and `/review`** — ADR tasks are prose documents, not code; neither the lint step nor the review checklist applies.
+b. **Do not spawn `linter` or `reviewer`** — ADR tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
 
 c. **Commit the ADR file** atomically — one commit for the ADR file, following the same one-atomic-commit-per-SUBTASK rule as regular TASKs:
    ```bash
@@ -49,27 +49,34 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ### Execute (repeat for each SUBTASK)
 
-8. **Follow the `/tdd` procedure** for this SUBTASK's behavior.
-   - If `/tdd` cannot make tests pass after a genuine attempt, stop. Explain the blocker to the human and wait for guidance before continuing.
+8. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict) in the prompt. The subagent follows `skills/tdd/SKILL.md` — you do not repeat its procedure.
 
-9. **Follow the `/lint` procedure** on the changes made during this SUBTASK.
+   Wait for the subagent's return summary (files changed, test names added, RED→GREEN evidence).
 
-   - If lint **passes or is silently skipped** (no tooling found): continue to step 10.
+   - If the subagent reports a blocker per `skills/tdd/SKILL.md`'s hard rules, stop. Surface the blocker to the human and wait for guidance before continuing.
 
-   - If lint **fails** (violations that could not be auto-fixed):
-     - Fix the violations directly in the code — do **not** return to `/tdd`. Lint failures are style/format issues, not behavioral regressions.
-     - Re-run `/lint`.
-     - If this is the **3rd consecutive lint failure on the same SUBTASK**: stop. Show the full lint output to the human and wait for guidance before continuing.
+9. **Spawn the `linter` subagent** on the staged changes. The subagent follows `skills/lint/SKILL.md` — you do not repeat its procedure.
 
-10. **Follow the `/review` procedure** on the changes made during this SUBTASK.
+   Wait for the subagent's return summary (per-bucket status, files re-staged, hard-stop details if any).
 
-    - If verdict is **FAIL** (blocking findings exist):
+   - If every bucket **passes or was silently skipped** (no tooling detected): continue to step 10.
+
+   - If a bucket **hard-stops**:
+     - Fix the violations directly in the code — do **not** re-spawn `programmer`. Lint hard-stops are style/format issues, not behavioral regressions.
+     - Re-spawn the `linter` subagent.
+     - If this is the **3rd consecutive lint hard-stop on the same SUBTASK**: stop. Show the subagent's last hard-stop output to the human and wait for guidance before continuing.
+
+10. **Spawn the `reviewer` subagent** on the staged changes. The subagent follows `skills/review/SKILL.md` — you do not repeat its procedure.
+
+    Wait for the subagent's return summary (BLOCKING findings, ADVISORY findings, verdict).
+
+    - If verdict is **FAIL** (BLOCKING findings exist):
       - Record the feedback
-      - Return to step 8 (`/tdd` step c — implementation) with the blocking findings as explicit constraints
-      - If this is the **3rd consecutive FAIL on the same SUBTASK**: stop. Present all accumulated blocking feedback to the human and wait for guidance.
+      - Return to step 8 — re-spawn `programmer` with the BLOCKING findings as explicit constraints
+      - If this is the **3rd consecutive FAIL on the same SUBTASK**: stop. Present all accumulated BLOCKING feedback to the human and wait for guidance.
 
-    - If verdict is **PASS** (zero blocking findings):
-      - Record any advisory findings in the advisory log
+    - If verdict is **PASS** (zero BLOCKING findings):
+      - Record any ADVISORY findings in the advisory log
       - Continue to step 11
 
 11. **Commit the SUBTASK**:
@@ -108,10 +115,11 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ## Hard rules
 
-- Never start the next SUBTASK until the current one is GREEN, lint is clean, and `/review` has passed.
-- Never refactor while RED (this is enforced inside `/tdd`, but also your responsibility here).
-- Never return to `/tdd` to resolve lint failures — fix them directly in the code.
+- Never start the next SUBTASK until the current one is GREEN, lint is clean, and the `reviewer` subagent has returned PASS.
+- Never refactor while RED (this is enforced inside `skills/tdd/SKILL.md` via the `programmer` subagent, but also your responsibility as orchestrator).
+- Never re-spawn `programmer` to resolve lint hard-stops — fix them directly in the code.
+- Never repeat or paraphrase a subagent's internal procedure in your own messages — trust the return summary; the raw work stays inside the subagent's context by design.
 - One atomic commit per SUBTASK — this applies to ADR file commits as well as code commits.
 - Do not skip the full suite check after all SUBTASKs.
 - Do not open a PR without explicit human confirmation.
-- When the `adr` label is present, never run the TDD loop, `/lint`, or `/review` — always route to `/document`.
+- When the `adr` label is present, never spawn `programmer`, `linter`, or `reviewer` — always route to `/document`.
