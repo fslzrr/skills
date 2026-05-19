@@ -200,62 +200,8 @@ Format the output clearly with headers and issue numbers so the human can act on
 
 ## PRD template
 
-```markdown
-## Context
-<!-- Why does this exist? What prompted it? -->
-
-## Problem Statement
-<!-- What specific problem is being solved? -->
-
-## Solution
-<!-- Proposed approach -->
-
-## User Stories
-<!-- As a [user], I want [goal] so that [reason] -->
-
-## Implementation Decisions
-<!-- Key technical/architectural choices -->
-
-## Testing Decisions
-<!-- How we know this works at the PRD level -->
-
-## Out of Scope
-<!-- Explicit exclusions to prevent scope creep -->
-
-## Alternatives Considered
-<!-- Why this approach over others -->
-
-## Risks & Mitigations
-<!-- What could go wrong and how to handle it -->
-
-## Dependencies
-<!-- Other PRDs or external systems required before implementation -->
-
-## Further Notes
-<!-- Anything else relevant -->
-```
+Read `skills/issues/templates/prd.md` and use it as the structural template for the issue body, filling in each section from the interview findings.
 
 ## TASK template
 
-```markdown
-## Context
-<!-- Why this TASK exists within the parent PRD -->
-
-## Goal
-<!-- What this specific vertical slice achieves -->
-
-## Acceptance Criteria
-<!-- Specific, testable conditions — each becomes one SUBTASK in /implement -->
-
-## Blockers / Dependencies
-<!-- Other TASKs that must complete before this one -->
-
-## Parent PRD
-<!-- Link to parent PRD issue -->
-
-## Testing Approach
-<!-- How this slice is tested end-to-end -->
-
-## Affected Areas
-<!-- Files, modules, systems this TASK touches -->
-```
+Read `skills/issues/templates/task.md` and use it as the structural template for the issue body, filling in each section with the approved content.

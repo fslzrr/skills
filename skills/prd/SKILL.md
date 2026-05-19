@@ -55,48 +55,7 @@ Map the interview narrative and codebase findings to each section of the PRD tem
 
 Do not ask multiple follow-up questions at once. Resolve gaps one at a time.
 
-**PRD template:**
-
-```markdown
-## Context
-<!-- Why does this exist? What prompted it? -->
-
-## Problem Statement
-<!-- What specific problem is being solved? -->
-
-## Solution
-<!-- Proposed approach -->
-
-## User Stories
-<!-- As a [user], I want [goal] so that [reason] -->
-
-## Implementation Decisions
-<!-- Key technical/architectural choices -->
-
-## Testing Decisions
-<!-- How we know this works at the PRD level -->
-
-## Out of Scope
-<!-- Explicit exclusions to prevent scope creep -->
-
-## Alternatives Considered
-<!-- Why this approach over others -->
-
-## Risks & Mitigations
-<!-- What could go wrong and how to handle it -->
-
-## Dependencies
-<!-- Other PRDs or external systems required before implementation -->
-
-## Further Notes
-<!-- Anything else relevant -->
-
-<!-- include only when Step 2 found qualifying decisions -->
-## Identified ADRs
-<!-- - **Name**: short imperative phrase -->
-<!--   **Rationale**: one sentence -->
-<!--   **Alternatives**: brief note on what was not chosen -->
-```
+**PRD template:** Read `skills/issues/templates/prd.md` and use it as the structural template for the issue body, filling in each section with the information gathered. When Step 2 found qualifying decisions, append an `## Identified ADRs` section after `## Further Notes` using the format described above.
 
 ### 4. Show the draft to the human
 
