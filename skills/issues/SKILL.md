@@ -7,23 +7,7 @@ Manage GitHub issues for the software factory. You are the authoritative interfa
 
 ## Label reference
 
-All 13 factory labels. This table is the single source of truth for label recovery — do not invent labels outside it.
-
-| name | color | description |
-|---|---|---|
-| `prd` | `8B5CF6` | Product Requirements Document |
-| `task` | `EC4899` | Implementation task |
-| `needs-triage` | `9CA3AF` | Awaiting triage |
-| `in-backlog` | `F97316` | Triaged, in backlog |
-| `in-progress` | `10B981` | Actively being worked on |
-| `ai-ready` | `FCD34D` | Ready for AI implementation |
-| `human-ready` | `FDE68A` | Ready for human implementation |
-| `ai-in-progress` | `34D399` | AI is implementing |
-| `human-in-progress` | `6EE7B7` | Human is implementing |
-| `in-code-review` | `60A5FA` | PR open, awaiting review |
-| `blocked` | `EF4444` | Blocked by a dependency or issue |
-| `cancelled` | `F87171` | Abandoned, not completed |
-| `adr` | `2DD4BF` | Architecture Decision Record |
+See `reference/labels.md` for the full catalog.
 
 ## State machines
 
@@ -57,7 +41,7 @@ Apply this procedure **only** when a write operation (`create-prd`, `create-prd-
 1. Run `gh label list --limit 50` and collect the names of all existing labels.
 2. Identify which labels the failed operation needed but are missing from the list.
 3. For each missing label:
-   - Look it up in the **Label reference** table above. If it is not in the table, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
+   - Look it up in `reference/labels.md`. If it is not in the file, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
    - Run `gh label create "<name>" --color "<color>" --description "<description>"` using the exact values from the table.
    - Notify the user: "Created missing label: `<name>`."
 4. Retry the original operation **once**.
