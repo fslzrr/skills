@@ -1,3 +1,5 @@
+<!-- Canonical PRD body template — owned by /issues, referenced by /prd and /issues -->
+
 ## Context
 <!-- Why does this exist? What prompted it? -->
 

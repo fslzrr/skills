@@ -56,7 +56,6 @@ Once approved, for each TASK:
 
 Use `/issues` to create a child issue with:
 - **Labels**: `task` and `ai-ready` or `human-ready` (as approved)
-- **Body**: TASK template populated with the approved content
 - **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
 
 **TASK template:** Read `skills/issues/templates/task.md` and use it as the structural template for the issue body, filling in each section with the approved content.

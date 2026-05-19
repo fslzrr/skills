@@ -1,3 +1,5 @@
+<!-- Canonical TASK body template — owned by /issues, referenced by /decompose and /issues -->
+
 ## Context
 <!-- Why this TASK exists within the parent PRD -->
 
