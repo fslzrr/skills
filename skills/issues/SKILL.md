@@ -200,8 +200,8 @@ Format the output clearly with headers and issue numbers so the human can act on
 
 ## PRD template
 
-This skill owns the canonical PRD body template. To apply it: read `skills/issues/templates/prd.md` and use it as the structural template for the issue body, filling in each section from the interview findings.
+This skill owns the canonical PRD body template. To apply it: read `templates/prd.md` and use it as the structural template for the issue body, filling in each section from the interview findings.
 
 ## TASK template
 
-This skill owns the canonical TASK body template. To apply it: read `skills/issues/templates/task.md` and use it as the structural template for the issue body, filling in each section with the approved content.
+This skill owns the canonical TASK body template. To apply it: read `templates/task.md` and use it as the structural template for the issue body, filling in each section with the approved content.

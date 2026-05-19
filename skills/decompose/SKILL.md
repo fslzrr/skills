@@ -58,7 +58,7 @@ Use `/issues` to create a child issue with:
 - **Labels**: `task` and `ai-ready` or `human-ready` (as approved)
 - **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
 
-**TASK template:** Read `skills/issues/templates/task.md` and use it as the structural template for the issue body, filling in each section with the approved content.
+**TASK template:** Read `../issues/templates/task.md` and use it as the structural template for the issue body, filling in each section with the approved content.
 
 ### 5. Create ADR TASK issues
 
