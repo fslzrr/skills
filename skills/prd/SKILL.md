@@ -20,7 +20,7 @@ Before exploring the codebase, read `docs/adr/` once per session:
 
 ### 1. Explore the codebase
 
-Before writing a single line of the PRD, explore the codebase extensively:
+Before writing a single line of the PRD, invoke the built-in `Explore` agent (subagent_type: Explore) to map the codebase. Direct it to:
 
 - **Map the architecture**: identify the major modules, what each one is responsible for, and what its interface looks like from the outside.
 - **Find every module relevant to the solution**: what can be used as-is, what needs to be extended, what needs to be replaced or built from scratch.
