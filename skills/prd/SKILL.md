@@ -55,7 +55,7 @@ Map the interview narrative and codebase findings to each section of the PRD tem
 
 Do not ask multiple follow-up questions at once. Resolve gaps one at a time.
 
-**PRD template:** Read `../issues/templates/prd.md` and use it as the structural template for the issue body, filling in each section with the information gathered. When Step 2 found qualifying decisions, append an `## Identified ADRs` section after `## Further Notes` using the format described above.
+**PRD template:** Read [../issues/templates/prd.md](../issues/templates/prd.md) and use it as the structural template for the issue body, filling in each section with the information gathered. When Step 2 found qualifying decisions, append an `## Identified ADRs` section after `## Further Notes` using the format described above.
 
 ### 4. Show the draft to the human
 
