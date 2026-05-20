@@ -149,38 +149,7 @@ Check whether all TASKs under a PRD are closed, and close the PRD if so:
 3. If any TASK is still open: do nothing.
 
 ### status-dashboard
-Show the current factory state:
-
-1. Fetch all open issues in one call:
-   ```bash
-   gh issue list --state open --json number,title,labels,comments --limit 200
-   ```
-   Store the response as the working dataset. Do not make any further `gh issue list` calls for the dashboard.
-
-2. From the working dataset, derive each section in-memory by inspecting label names:
-
-   **PRDs by state** — issues whose labels include `prd`, grouped by their state label:
-   - `needs-triage`
-   - `in-backlog`
-   - `in-progress`
-
-   **TASKs by state** — issues whose labels include `task`, grouped by their state label:
-   - `human-ready`
-   - `human-in-progress`
-   - `ai-ready`
-   - `ai-in-progress`
-   - `in-code-review`
-
-   **Blocked** — issues (PRD or TASK) whose labels include `blocked`.
-
-3. Child-task completion check — for each `in-progress` PRD from step 2:
-   - Scan its comments for one whose body starts with `Created child TASKs:`.
-   - If found, extract every `#N` issue number from that comment.
-   - For each `#N`, check whether it appears in the working dataset (i.e., it is still open). Any `#N` absent from the dataset is treated as closed.
-   - If every referenced child `#N` is absent from the dataset (all closed), flag that PRD as `✓ all TASKs closed — ready to close`.
-   - If no such comment exists (legacy PRD), show nothing — no error.
-
-Format the output clearly with headers and issue numbers so the human can act on it immediately.
+Show the current factory state by running `scripts/status-dashboard.sh`.
 
 ## Shared templates
 
