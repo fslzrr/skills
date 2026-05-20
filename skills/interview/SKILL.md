@@ -7,7 +7,7 @@ Conduct a relentless requirements interview until you and the human have reached
 
 ## ADR guard
 
-Before exploring the codebase, read `docs/adr/` once per session:
+Before starting, read `docs/adr/` once per session:
 
 - If the directory does not exist or is empty, proceed without constraints.
 - If ADRs exist, treat every recorded decision as a hard constraint. Do not propose, implement, or accept approaches that contradict them.

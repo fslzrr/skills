@@ -11,7 +11,7 @@ You need a PRD issue number. If not provided, ask for it.
 
 ## ADR guard
 
-Before making decomposition decisions, read `docs/adr/` once per session:
+Before starting, read `docs/adr/` once per session:
 
 - If the directory does not exist or is empty, proceed without constraints.
 - If ADRs exist, treat every recorded decision as a hard constraint. Do not propose, implement, or accept approaches that contradict them.
