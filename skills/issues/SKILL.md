@@ -7,23 +7,7 @@ Manage GitHub issues for the software factory. You are the authoritative interfa
 
 ## Label reference
 
-All 13 factory labels. This table is the single source of truth for label recovery — do not invent labels outside it.
-
-| name | color | description |
-|---|---|---|
-| `prd` | `8B5CF6` | Product Requirements Document |
-| `task` | `EC4899` | Implementation task |
-| `needs-triage` | `9CA3AF` | Awaiting triage |
-| `in-backlog` | `F97316` | Triaged, in backlog |
-| `in-progress` | `10B981` | Actively being worked on |
-| `ai-ready` | `FCD34D` | Ready for AI implementation |
-| `human-ready` | `FDE68A` | Ready for human implementation |
-| `ai-in-progress` | `34D399` | AI is implementing |
-| `human-in-progress` | `6EE7B7` | Human is implementing |
-| `in-code-review` | `60A5FA` | PR open, awaiting review |
-| `blocked` | `EF4444` | Blocked by a dependency or issue |
-| `cancelled` | `F87171` | Abandoned, not completed |
-| `adr` | `2DD4BF` | Architecture Decision Record |
+See `reference/labels.md` for the full catalog.
 
 ## State machines
 
@@ -57,8 +41,8 @@ Apply this procedure **only** when a write operation (`create-prd`, `create-prd-
 1. Run `gh label list --limit 50` and collect the names of all existing labels.
 2. Identify which labels the failed operation needed but are missing from the list.
 3. For each missing label:
-   - Look it up in the **Label reference** table above. If it is not in the table, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
-   - Run `gh label create "<name>" --color "<color>" --description "<description>"` using the exact values from the table.
+   - Look it up in `reference/labels.md`. If it is not in the file, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
+   - Run `gh label create "<name>" --color "<color>" --description "<description>"` using the `name`, `color`, and `description` values from the file.
    - Notify the user: "Created missing label: `<name>`."
 4. Retry the original operation **once**.
 5. If the retry also fails, surface the error as-is and stop. Do not retry again.
@@ -165,38 +149,7 @@ Check whether all TASKs under a PRD are closed, and close the PRD if so:
 3. If any TASK is still open: do nothing.
 
 ### status-dashboard
-Show the current factory state:
-
-1. Fetch all open issues in one call:
-   ```bash
-   gh issue list --state open --json number,title,labels,comments --limit 200
-   ```
-   Store the response as the working dataset. Do not make any further `gh issue list` calls for the dashboard.
-
-2. From the working dataset, derive each section in-memory by inspecting label names:
-
-   **PRDs by state** — issues whose labels include `prd`, grouped by their state label:
-   - `needs-triage`
-   - `in-backlog`
-   - `in-progress`
-
-   **TASKs by state** — issues whose labels include `task`, grouped by their state label:
-   - `human-ready`
-   - `human-in-progress`
-   - `ai-ready`
-   - `ai-in-progress`
-   - `in-code-review`
-
-   **Blocked** — issues (PRD or TASK) whose labels include `blocked`.
-
-3. Child-task completion check — for each `in-progress` PRD from step 2:
-   - Scan its comments for one whose body starts with `Created child TASKs:`.
-   - If found, extract every `#N` issue number from that comment.
-   - For each `#N`, check whether it appears in the working dataset (i.e., it is still open). Any `#N` absent from the dataset is treated as closed.
-   - If every referenced child `#N` is absent from the dataset (all closed), flag that PRD as `✓ all TASKs closed — ready to close`.
-   - If no such comment exists (legacy PRD), show nothing — no error.
-
-Format the output clearly with headers and issue numbers so the human can act on it immediately.
+Show the current factory state by running `scripts/status-dashboard.sh` (path relative to this skill's directory).
 
 ## Shared templates
 
