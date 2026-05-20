@@ -42,7 +42,7 @@ Apply this procedure **only** when a write operation (`create-prd`, `create-prd-
 2. Identify which labels the failed operation needed but are missing from the list.
 3. For each missing label:
    - Look it up in `reference/labels.md`. If it is not in the file, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
-   - Run `gh label create "<name>" --color "<color>" --description "<description>"` using the exact values from the table.
+   - Run `gh label create "<name>" --color "<color>" --description "<description>"` using the `name`, `color`, and `description` values from the file.
    - Notify the user: "Created missing label: `<name>`."
 4. Retry the original operation **once**.
 5. If the retry also fails, surface the error as-is and stop. Do not retry again.
@@ -149,7 +149,7 @@ Check whether all TASKs under a PRD are closed, and close the PRD if so:
 3. If any TASK is still open: do nothing.
 
 ### status-dashboard
-Show the current factory state by running `scripts/status-dashboard.sh`.
+Show the current factory state by running `scripts/status-dashboard.sh` (path relative to this skill's directory).
 
 ## Shared templates
 

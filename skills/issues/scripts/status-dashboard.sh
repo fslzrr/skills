@@ -94,9 +94,10 @@ in_progress_prds=$(echo "$issues" | jq -r '
 if [[ -n "$in_progress_prds" ]]; then
   # Collect all open issue numbers as a JSON array for membership checks
   open_numbers=$(echo "$issues" | jq '[.[].number]')
+  header_printed=false
 
   while IFS= read -r encoded; do
-    prd=$(echo "$encoded" | base64 --decode)
+    prd=$(echo "$encoded" | base64 -d)
     prd_number=$(echo "$prd" | jq -r '.number')
     prd_title=$(echo "$prd" | jq -r '.title')
 
@@ -129,6 +130,11 @@ if [[ -n "$in_progress_prds" ]]; then
     done <<< "$child_numbers"
 
     if [[ "$all_closed" == "true" ]]; then
+      if [[ "$header_printed" == "false" ]]; then
+        echo "=== PRDs ready to close ==="
+        echo ""
+        header_printed=true
+      fi
       echo "  #${prd_number} ${prd_title}"
       echo "    ✓ all TASKs closed — ready to close"
       echo ""
