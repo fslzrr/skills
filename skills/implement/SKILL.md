@@ -9,6 +9,13 @@ Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestra
 
 You need an `ai-ready` TASK issue number. If not provided, ask for it.
 
+## Style guide guard
+
+Before starting, read `docs/style-guide/` once per session:
+
+- If the directory does not exist or is empty, proceed without constraints.
+- If entries exist, treat every documented pattern as a hard constraint for UI-related decisions — unless the current work is explicitly superseding an entry.
+
 ## The implementation loop
 
 ### Setup
