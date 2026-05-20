@@ -37,7 +37,7 @@ ls docs/adr/ 2>/dev/null
 
 ### 3. Draft the Nygard ADR and present for review
 
-Load the skeleton from `templates/adr.md`, populate each field using the values extracted in Step 1 and the number from Step 2, and use today's date for the `Date` field.
+Load the skeleton from `skills/document/templates/adr.md`, populate each field using the values extracted in Step 1 and the number from Step 2, and use today's date for the `Date` field.
 
 - Use today's date for the `Date` field.
 - If an **Alternatives pointer** was found in Step 1, append an `## Alternatives Considered` section after `Consequences`. If the pointer is a link or issue reference, include it as-is. If the pointer is inline content in the TASK body, summarise it. Do not invent alternatives that are not present in the TASK body.
