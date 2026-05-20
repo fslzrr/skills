@@ -7,7 +7,7 @@ Manage GitHub issues for the software factory. You are the authoritative interfa
 
 ## Label reference
 
-See `reference/labels.md` for the full catalog.
+See [reference/labels.md](reference/labels.md) for the full catalog.
 
 ## State machines
 
@@ -41,7 +41,7 @@ Apply this procedure **only** when a write operation (`create-prd`, `create-prd-
 1. Run `gh label list --limit 50` and collect the names of all existing labels.
 2. Identify which labels the failed operation needed but are missing from the list.
 3. For each missing label:
-   - Look it up in `reference/labels.md`. If it is not in the file, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
+   - Look it up in [reference/labels.md](reference/labels.md). If it is not in the file, stop and surface a clear error: "Label `<name>` is not a known factory label — cannot create it." Do not guess colors or descriptions.
    - Run `gh label create "<name>" --color "<color>" --description "<description>"` using the `name`, `color`, and `description` values from the file.
    - Notify the user: "Created missing label: `<name>`."
 4. Retry the original operation **once**.
@@ -149,11 +149,11 @@ Check whether all TASKs under a PRD are closed, and close the PRD if so:
 3. If any TASK is still open: do nothing.
 
 ### status-dashboard
-Show the current factory state by running `scripts/status-dashboard.sh` (path relative to this skill's directory).
+Show the current factory state by running [scripts/status-dashboard.sh](scripts/status-dashboard.sh).
 
 ## Shared templates
 
 This skill owns the canonical issue body templates. To apply them:
 
-- **PRD**: read `templates/prd.md` and use it as the structural template for the issue body, filling in each section from the interview findings.
-- **TASK**: read `templates/task.md` and use it as the structural template for the issue body, filling in each section with the approved content.
+- **PRD**: read [templates/prd.md](templates/prd.md) and use it as the structural template for the issue body, filling in each section from the interview findings.
+- **TASK**: read [templates/task.md](templates/task.md) and use it as the structural template for the issue body, filling in each section with the approved content.
