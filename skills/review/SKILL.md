@@ -11,6 +11,7 @@ Before starting, read `docs/adr/` once per session:
 
 - If the directory does not exist or is empty, proceed without constraints.
 - If ADRs exist, treat every recorded decision as a hard constraint. Do not propose, implement, or accept approaches that contradict them.
+- Flag any change that contradicts an ADR as a BLOCKING finding.
 
 ## Style guide guard
 

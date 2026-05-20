@@ -1,6 +1,6 @@
 # Label catalog
 
-This file is the single source of truth for the 13 factory labels used by the `issues` skill. Consult it for label recovery — do not invent labels outside this catalog.
+This file is the single source of truth for the 14 factory labels used by the `issues` skill. Consult it for label recovery — do not invent labels outside this catalog.
 
 | name | color | description | purpose |
 |---|---|---|---|
