@@ -32,7 +32,7 @@ Use `/issues` to read the full PRD content. Pay close attention to:
 - Acceptance Criteria or Testing Decisions (these inform TASK acceptance criteria)
 - Out of Scope (ensure no TASK crosses this boundary)
 - Dependencies (some TASKs may be blocked by these)
-- **Identified ADRs** (each entry becomes one ADR TASK — see step 5)
+- **Identified ADRs** (each entry becomes one ADR TASK — see step 6)
 
 ### 2. Group user stories into vertical slices
 
@@ -57,7 +57,24 @@ Say: "Here is my proposed TASK breakdown. Review each grouping and let me know i
 
 Wait for explicit approval. Apply any requested changes and re-show the affected TASKs if modified.
 
-### 4. Create the TASK issues
+### 4. Generate prototypes for UI stories
+
+For each proposed TASK in the approved list, determine whether it covers a UI story that introduces or modifies a visual component or pattern. A TASK qualifies if it involves any of the following:
+
+- A new visual component (e.g., a new widget, card, modal, or page section)
+- A modified visual component (e.g., a changed layout, updated states, or restyled element)
+- A new design token (e.g., a new color, spacing value, or typography scale entry)
+- A layout behavior change (e.g., a shift in grid structure, responsive breakpoints, or element arrangement)
+- Any other visually observable UI change that the explicit criteria above do not cover — use judgment
+
+For each qualifying TASK, generate a self-contained HTML/CSS prototype that visually represents the component or pattern. The prototype must:
+- Render the component in isolation with enough surrounding structure to be readable in a browser
+- Use only inline `<style>` and standard HTML — no external dependencies
+- Reflect the intent of the acceptance criteria (states, variants, layout) as faithfully as possible
+
+Write each prototype to `/tmp/prototype-[component].html`, where `[component]` is a kebab-case name derived from the component being designed (e.g., `/tmp/prototype-filter-sidebar.html`).
+
+### 5. Create the TASK issues
 
 Once approved, for each TASK:
 
@@ -67,7 +84,7 @@ Use `/issues` to create a child issue with:
 
 **TASK template:** Read [../issues/templates/task.md](../issues/templates/task.md) and use it as the structural template for the issue body, filling in each section with the approved content.
 
-### 5. Create ADR TASK issues
+### 6. Create ADR TASK issues
 
 If the PRD contains an **Identified ADRs** section, create one TASK issue per entry in that section:
 
@@ -77,9 +94,9 @@ If the PRD contains an **Identified ADRs** section, create one TASK issue per en
 
 Use `/issues` to create each ADR TASK issue.
 
-### 6. Post the child-registry summary comment
+### 7. Post the child-registry summary comment
 
-After all TASKs (regular and ADR) are created, collect every TASK number and title produced in steps 4 and 5. Post a single comment on the PRD issue:
+After all TASKs (regular and ADR) are created, collect every TASK number and title produced in steps 5 and 6. Post a single comment on the PRD issue:
 
 ```bash
 gh issue comment <PRD-number> --body "Created child TASKs:
@@ -89,7 +106,7 @@ gh issue comment <PRD-number> --body "Created child TASKs:
 
 List every created TASK — ARD TASKs first, then regular TASKs — in the order they were created.
 
-### 7. Update the PRD state
+### 8. Update the PRD state
 
 After all TASKs are created, use `/issues` to transition the PRD from `in-backlog` to `in-progress`.
 
