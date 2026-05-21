@@ -9,9 +9,7 @@ Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestra
 
 You need an `ai-ready` TASK issue number. If not provided, ask for it.
 
-### MCP prerequisites
-
-- **chrome-devtools-mcp** — required for browser validation of UI tasks. Must be running and connected to a live Chrome instance before starting any UI SUBTASK.
+- **chrome-devtools-mcp** — must be running and connected to a live Chrome instance before starting any SUBTASK that requires browser validation.
   > **Warning:** Do not manually open Chrome DevTools while chrome-devtools-mcp is active — opening DevTools manually crashes the MCP-controlled browser session.
 
 ## ADR guard
@@ -44,7 +42,7 @@ When the TASK carries the `adr` label:
 
 a. **Call `/document`** — pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
 
-b. **Do not spawn `linter` or `reviewer`** — ADR tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
+b. **Do not spawn `programmer`, `linter`, or `reviewer`** — ADR tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
 
 c. **Commit the ADR file** atomically — one commit for the ADR file, following the same one-atomic-commit-per-SUBTASK rule as regular TASKs:
    ```bash
@@ -62,7 +60,7 @@ When the TASK carries the `style-guide` label:
 
 a. **Call `/document`** — pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
 
-b. **Do not spawn `linter` or `reviewer`** — style guide tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
+b. **Do not spawn `programmer`, `linter`, or `reviewer`** — style guide tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
 
 c. **Commit the style guide file** atomically — one commit for the style guide file, following the same one-atomic-commit-per-SUBTASK rule as regular TASKs:
    ```bash
@@ -115,9 +113,11 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
       - Record any ADVISORY findings in the advisory log
       - Continue to step 9a
 
-9a. **Browser validation (UI tasks only)** — Fetch the TASK body with `gh issue view <TASK-number> --json body` and check for a `## Prototype` section containing a fenced `html` code block. If no such section is present, skip this step entirely.
+9a. **Browser validation (UI tasks only)** — Fetch the TASK body with `gh issue view <TASK-number> --json body` (where `<TASK-number>` is the issue number passed to `/implement` at step 1) and check for a `## Prototype` section containing a fenced `html` code block. If no such section is present, skip this step entirely.
 
-    If a `## Prototype` section is present, run the chrome-devtools-mcp validation loop before committing:
+    If a `## Prototype` section is present, verify that chrome-devtools-mcp is reachable before proceeding. If it is not reachable, stop and ask the human to start it before continuing.
+
+    Run the chrome-devtools-mcp validation loop before committing:
 
     1. **Visual match** — take a screenshot via chrome-devtools-mcp and compare the rendered output against the HTML prototype from the TASK body. Confirm layout, colors, and component structure match.
     2. **Functional interaction** — exercise the interactive elements described in the prototype (clicks, inputs, navigation) and confirm they behave as specified.
