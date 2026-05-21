@@ -109,7 +109,7 @@ If any of these fields are absent or ambiguous, ask the human one targeted quest
 Inspect the TASK body for a reference to a linked implementation TASK (e.g. "See TASK #N", "Parent implementation: #N", or a GitHub issue link). If such a reference exists:
 
 1. Fetch the linked TASK with `gh issue view <N> --json title,body`.
-2. Look for a fenced code block in that TASK's body that is marked as the approved prototype (typically an HTML snippet).
+2. Look for a fenced code block in that TASK's body that immediately follows a heading or label containing the word "prototype" or "approved" (typically an HTML snippet). If multiple fenced code blocks exist, prefer the one closest to such a label.
 3. Extract that code block for use in the HTML example section of the draft.
 
 If no linked implementation TASK is referenced, or if the TASK is decision-only with no prototype, **omit the HTML example section entirely** — do not invent one.
@@ -147,18 +147,17 @@ mkdir -p docs/style-guide/[slug]/
 
 ### S6. Structural validation before write
 
-Before writing, verify that the confirmed draft contains all of the following required sections:
+Before writing, verify that the confirmed draft contains both of the following required sections:
 
 - `## Status`
 - `## Overview`
-- `## Design tokens`
-- `## States`
-- `## Usage rules`
+
+All other sections (Design tokens, States, Usage rules, HTML example) are optional and may be omitted when they do not apply to the entry.
 
 Also verify:
 
 - `## HTML example` is present **only if** an approved prototype was found in Step S2. If an HTML example section appears but no prototype was found, surface the error and do not write.
-- If any required section is missing, state which section is missing and do not write the file. Ask the human to supply the missing content before retrying.
+- If Status or Overview is missing, state which section is missing and do not write the file. Ask the human to supply the missing content before retrying.
 
 ### S7. Write the file
 

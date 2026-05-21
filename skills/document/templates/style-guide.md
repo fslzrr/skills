@@ -1,10 +1,12 @@
 # <Component or pattern name>
 
+<!-- Copy this file to docs/style-guide/[slug]/index.md — do not edit in place. -->
+
 Date: YYYY-MM-DD
 
 ## Status
 
-<Draft | Accepted | Superseded>
+<Choose one: Draft | Accepted | Superseded>
 
 <!-- If this entry supersedes an existing one, add on the second line under Status:
 Supersedes [slug](slug.md) -->
