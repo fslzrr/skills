@@ -1,0 +1,13 @@
+{
+  "name": "fslzrr",
+  "owner": {
+    "name": "Your Name"
+  },
+  "plugins": [
+    {
+      "name": "fslzrr",
+      "source": "..",
+      "description": "Adds fslzrr's skills and agents"
+    }
+  ]
+}
