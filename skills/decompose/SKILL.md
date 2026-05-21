@@ -74,6 +74,27 @@ For each qualifying TASK, generate a self-contained HTML/CSS prototype that visu
 
 Write each prototype to `/tmp/prototype-[component].html`, where `[component]` is a kebab-case name derived from the component being designed (e.g., `/tmp/prototype-filter-sidebar.html`).
 
+#### Approval gate (repeat for each prototype)
+
+After writing the prototype file, pause and tell the human:
+
+> "Prototype written to `/tmp/prototype-[component].html`. Open that file in a browser to review the visual design, then reply **approve** or describe the changes you want."
+
+Wait for one of two responses:
+
+- **Approval** — the human replies with "approve" or equivalent confirmation.
+  1. Store the full HTML content of the prototype to be embedded in the TASK body when the issue is created in step 5. The content will be inserted as a fenced HTML code block (` ```html … ``` `) inside the "Prototype" section of the TASK body.
+  2. Delete the temp file: `rm /tmp/prototype-[component].html`.
+  3. Proceed to the next prototype, or continue to step 5 when all prototypes are approved.
+
+- **Revision request** — the human describes changes they want.
+  1. Update the prototype based on the feedback.
+  2. Overwrite the temp file with the revised HTML.
+  3. Loop back to the top of this approval gate: re-display the file path and ask for approval again.
+  4. Repeat until the human approves.
+
+Do not move to step 5 until every prototype generated in this step has been approved and its temp file deleted.
+
 ### 5. Create the TASK issues
 
 Once approved, for each TASK:
@@ -82,7 +103,14 @@ Use `/issues` to create a child issue with:
 - **Labels**: `task` and `ai-ready` or `human-ready` (as approved)
 - **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
 
-**TASK template:** Read [../issues/templates/task.md](../issues/templates/task.md) and use it as the structural template for the issue body, filling in each section with the approved content.
+**TASK template:** Read [../issues/templates/task.md](../issues/templates/task.md) and use it as the structural template for the issue body, filling in each section with the approved content. If step 4 produced an approved prototype for this TASK, append a `## Prototype` section to the issue body containing the approved HTML as a fenced code block:
+
+````markdown
+## Prototype
+```html
+<!-- approved HTML here -->
+```
+````
 
 ### 6. Create ADR TASK issues
 
