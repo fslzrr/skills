@@ -20,3 +20,9 @@
 
 ## Affected Areas
 <!-- Files, modules, systems this TASK touches -->
+
+## Prototype
+<!-- Optional. Populated by /decompose when the TASK covers a UI story that was visually approved. Contains the approved HTML/CSS prototype as a fenced code block. Omit this section if no prototype was generated. -->
+```html
+<!-- approved HTML here -->
+```

@@ -67,6 +67,8 @@ For each proposed TASK in the approved list, determine whether it covers a UI st
 - A layout behavior change (e.g., a shift in grid structure, responsive breakpoints, or element arrangement)
 - Any other visually observable UI change that the explicit criteria above do not cover — use judgment
 
+If no TASK qualifies, skip this step and continue to step 5.
+
 For each qualifying TASK, generate a self-contained HTML/CSS prototype that visually represents the component or pattern. The prototype must:
 - Render the component in isolation with enough surrounding structure to be readable in a browser
 - Use only inline `<style>` and standard HTML — no external dependencies
@@ -103,14 +105,7 @@ Use `/issues` to create a child issue with:
 - **Labels**: `task` and `ai-ready` or `human-ready` (as approved)
 - **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
 
-**TASK template:** Read [../issues/templates/task.md](../issues/templates/task.md) and use it as the structural template for the issue body, filling in each section with the approved content. If step 4 produced an approved prototype for this TASK, append a `## Prototype` section to the issue body containing the approved HTML as a fenced code block:
-
-````markdown
-## Prototype
-```html
-<!-- approved HTML here -->
-```
-````
+**TASK template:** Read [../issues/templates/task.md](../issues/templates/task.md) and use it as the structural template for the issue body, filling in each section with the approved content. If step 4 produced an approved prototype for this TASK, fill in the `## Prototype` section with the approved HTML.
 
 ### 6. Create ADR TASK issues
 
@@ -124,9 +119,7 @@ Use `/issues` to create each ADR TASK issue.
 
 ### 7. Create style guide TASK issues
 
-Read `docs/style-guide/` to see which style guide entries already exist.
-
-For each UI TASK in the approved list — using the same detection criteria as step 4 (new component, modified component, new design token, layout behavior change, or LLM judgment for gaps) — evaluate whether the story introduces or modifies a style guide entry. Apply the following three-case logic:
+Using the style guide entries read during the style guide guard, for each UI TASK in the approved list — using the same detection criteria as step 4 (new component, modified component, new design token, layout behavior change, or LLM judgment for gaps) — evaluate whether the story introduces or modifies a style guide entry. Apply the following three-case logic:
 
 - **Introduces a new entry**: the story brings a component or pattern that has no corresponding entry in `docs/style-guide/` → create a style guide TASK.
 - **Modifies an existing entry**: the story changes a component or pattern that already has a corresponding entry in `docs/style-guide/` → create a style guide TASK.
