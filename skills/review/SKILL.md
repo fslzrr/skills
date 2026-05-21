@@ -1,6 +1,6 @@
 ---
 name: review
-description: "(fslzrr) Reviews staged or specified code changes against a fixed core checklist (TDD, SOLID, DRY, naming, deep modules) plus adaptive extras based on the type of change, and produces a PASS/FAIL verdict with blocking and advisory findings. Can be used standalone or is called by /implement after each SUBTASK. TRIGGER when: user says 'review my changes', 'code review', 'review this', 'check my implementation', 'review the diff', or after any implementation work."
+description: "Reviews staged or specified code changes against a fixed core checklist (TDD, SOLID, DRY, naming, deep modules) plus adaptive extras based on the type of change, and produces a PASS/FAIL verdict with blocking and advisory findings. Can be used standalone or is called by /implement after each SUBTASK. TRIGGER when: user says 'review my changes', 'code review', 'review this', 'check my implementation', 'review the diff', or after any implementation work."
 ---
 
 Review the staged or specified code changes and produce a structured verdict.

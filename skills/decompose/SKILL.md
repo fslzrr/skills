@@ -1,6 +1,6 @@
 ---
 name: decompose
-description: "(fslzrr) Breaks a PRD into vertical-slice TASKs by grouping user stories that share the same end-to-end context, proposes the breakdown with rationale for human approval, then creates the approved TASKs as child GitHub issues. TRIGGER when: user says 'decompose the PRD', 'break into tasks', 'create tasks for issue #N', 'split this into tasks'."
+description: "Breaks a PRD into vertical-slice TASKs by grouping user stories that share the same end-to-end context, proposes the breakdown with rationale for human approval, then creates the approved TASKs as child GitHub issues. TRIGGER when: user says 'decompose the PRD', 'break into tasks', 'create tasks for issue #N', 'split this into tasks'."
 ---
 
 Break a PRD into vertical-slice TASKs, propose the decomposition for human approval, then create the TASK issues on GitHub.

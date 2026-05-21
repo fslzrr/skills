@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: "(fslzrr) Executes a single RED/GREEN/REFACTOR cycle for a described behavior — writes failing tests first, makes them pass with minimal code, then refactors cleanly. Can be used standalone or is called by /implement for each SUBTASK. TRIGGER when: user says 'do TDD for X', 'write a test for', 'implement this with TDD', 'red green refactor', or wants to implement any behavior test-first."
+description: "Executes a single RED/GREEN/REFACTOR cycle for a described behavior — writes failing tests first, makes them pass with minimal code, then refactors cleanly. Can be used standalone or is called by /implement for each SUBTASK. TRIGGER when: user says 'do TDD for X', 'write a test for', 'implement this with TDD', 'red green refactor', or wants to implement any behavior test-first."
 ---
 
 Execute a RED → GREEN → REFACTOR cycle for a single behavior.

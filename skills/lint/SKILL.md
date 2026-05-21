@@ -1,6 +1,6 @@
 ---
 name: lint
-description: "(fslzrr) Runs three ordered quality-gate buckets — format (fix + re-stage), lint (check-only → auto-fix → hard-stop), typecheck (project-wide → hard-stop) — each discovered independently from declared project scripts; notifies and skips missing buckets; fail-fast on hard-stop. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint', 'run format', 'typecheck'."
+description: "Runs three ordered quality-gate buckets — format (fix + re-stage), lint (check-only → auto-fix → hard-stop), typecheck (project-wide → hard-stop) — each discovered independently from declared project scripts; notifies and skips missing buckets; fail-fast on hard-stop. Called by /implement between /tdd and /review. TRIGGER when: called by /implement after each SUBTASK, or user says 'run lint', 'lint the code', 'check lint', 'run format', 'typecheck'."
 ---
 
 Detect and run the project's quality tooling on staged changes. Never invent tooling — only run commands the project has explicitly declared. Execute three ordered buckets: **format → lint → typecheck**. If any bucket produces a hard-stop, do not run subsequent buckets.

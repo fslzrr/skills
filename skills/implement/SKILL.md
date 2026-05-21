@@ -1,6 +1,6 @@
 ---
 name: implement
-description: "(fslzrr) Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, spawns the programmer/linter/reviewer subagents per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says 'implement task #N', 'start implementing', 'work on this task' or 'implement this'."
+description: "Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, spawns the programmer/linter/reviewer subagents per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says 'implement task #N', 'start implementing', 'work on this task' or 'implement this'."
 ---
 
 Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestrator — you drive each SUBTASK by spawning the `programmer`, `linter`, and `reviewer` subagents, manage the git history, and own the PR lifecycle. Subagents own their procedures (defined in their respective SKILL.md files); your job is to react to their return summaries, not to repeat their work.
