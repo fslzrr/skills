@@ -122,9 +122,25 @@ If the PRD contains an **Identified ADRs** section, create one TASK issue per en
 
 Use `/issues` to create each ADR TASK issue.
 
-### 7. Post the child-registry summary comment
+### 7. Create style guide TASK issues
 
-After all TASKs (regular and ADR) are created, collect every TASK number and title produced in steps 5 and 6. Post a single comment on the PRD issue:
+Read `docs/style-guide/` to see which style guide entries already exist.
+
+For each UI TASK in the approved list — using the same detection criteria as step 4 (new component, modified component, new design token, layout behavior change, or LLM judgment for gaps) — evaluate whether the story introduces or modifies a style guide entry. Apply the following three-case logic:
+
+- **Introduces a new entry**: the story brings a component or pattern that has no corresponding entry in `docs/style-guide/` → create a style guide TASK.
+- **Modifies an existing entry**: the story changes a component or pattern that already has a corresponding entry in `docs/style-guide/` → create a style guide TASK.
+- **Consumes an existing entry only**: the story uses an already-documented component or pattern without changing it → do NOT create a style guide TASK.
+
+For each qualifying story, use `/issues` to create a separate TASK issue with:
+
+- **Labels**: `task,style-guide,ai-ready` (or `task,style-guide,human-ready` if a human should author it)
+- **Body**: briefly state what style guide entry needs to be authored or updated, and reference the parent TASK issue number and the parent PRD issue number
+- **Parent PRD**: reference the PRD issue number in the "Parent PRD" section
+
+### 8. Post the child-registry summary comment
+
+After all TASKs (regular, ADR, and style guide) are created, collect every TASK number and title produced in steps 5, 6, and 7. Post a single comment on the PRD issue:
 
 ```bash
 gh issue comment <PRD-number> --body "Created child TASKs:
@@ -132,9 +148,9 @@ gh issue comment <PRD-number> --body "Created child TASKs:
 - #M title"
 ```
 
-List every created TASK — ARD TASKs first, then regular TASKs — in the order they were created.
+List every created TASK — regular TASKs first, then ADR TASKs, then style guide TASKs — in the order they were created.
 
-### 8. Update the PRD state
+### 9. Update the PRD state
 
 After all TASKs are created, use `/issues` to transition the PRD from `in-backlog` to `in-progress`.
 
