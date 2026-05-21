@@ -1,13 +1,13 @@
 {
-  "name": "fslzrr",
+  "name": "fslzrr-marketplace",
   "owner": {
-    "name": "Your Name"
+    "name": "Fernando Salazar"
   },
   "plugins": [
     {
       "name": "fslzrr",
-      "source": "..",
-      "description": "Adds fslzrr's skills and agents"
+      "source": "github",
+      "repo": "fslzrr/skills"
     }
   ]
 }
