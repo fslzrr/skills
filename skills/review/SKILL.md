@@ -43,7 +43,12 @@ If a path or diff is specified, review those changes. Otherwise, review all stag
 - **Auth / security code**: Check for injection vulnerabilities, exposed secrets, broken authentication patterns, missing authorization checks.
 - **Data layer**: Check for unsafe migrations, N+1 query patterns, missing indexes on queried columns.
 - **Public API**: Check for breaking changes to contracts, backwards compatibility, missing or changed response shapes.
-- **UI / frontend**: Check for missing loading, error, and empty states. Check for accessibility (semantic HTML, ARIA labels, keyboard navigation).
+- **UI / frontend**:
+  - **Prototype fidelity** — implementation matches the approved prototype embedded in the TASK body (read via `gh issue view <TASK-number> --json body`)
+  - **Style guide compliance** — implementation follows the relevant `docs/style-guide/` entry, or explicitly supersedes it with a documented reason
+  - **Browser validation evidence** — the full chrome-devtools-mcp loop ran and passed (visual match, functional interaction, console/network health); evidence must be present in the TASK output
+  - **Expanded accessibility** — semantic HTML, ARIA labels, keyboard navigation, color contrast, loading states, error states, and empty states all verified
+  - **Style guide coverage** — a documentation TASK was created and completed for any new component or design decision introduced
 
 ## Output format
 
