@@ -29,7 +29,7 @@ Before starting, read `docs/style-guide/` once per session:
 
 1. Use `/issues` to transition the TASK from `ai-ready` → `ai-in-progress`.
 2. Use `/issues` to read the full TASK content: goal, acceptance criteria, affected areas, testing approach, parent PRD.
-3. **Check for the `adr` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below instead of the TDD loop.
+3. **Check for the `adr` or `style-guide` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below. If labeled `style-guide`, follow the **Style guide routing** path below. Both skip the TDD loop entirely.
 
 ---
 
@@ -51,7 +51,25 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ---
 
-### Plan (TDD path — skip if `adr` label present)
+### Style guide routing (only when TASK has the `style-guide` label)
+
+When the TASK carries the `style-guide` label:
+
+a. **Call `/document`** — pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
+
+b. **Do not spawn `linter` or `reviewer`** — style guide tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
+
+c. **Commit the style guide file** atomically — one commit for the style guide file, following the same one-atomic-commit-per-SUBTASK rule as regular TASKs:
+   ```bash
+   git add docs/style-guide/<entry-file>
+   git commit -m "docs(style-guide): <description of the pattern documented>"
+   ```
+
+d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirmation, open PR, transition to `in-code-review`).
+
+---
+
+### Plan (TDD path — skip if `adr` or `style-guide` label present)
 
 4. Map each acceptance criterion to one SUBTASK. Each SUBTASK is one RED/GREEN/REFACTOR cycle.
 5. Present the SUBTASK plan to the human:
@@ -135,4 +153,4 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 - One atomic commit per SUBTASK — this applies to ADR file commits as well as code commits.
 - Do not skip the full suite check after all SUBTASKs.
 - Do not open a PR without explicit human confirmation.
-- When the `adr` label is present, never spawn `programmer`, `linter`, or `reviewer` — always route to `/document`.
+- When the `adr` or `style-guide` label is present, never spawn `programmer`, `linter`, or `reviewer` — always route to `/document`.
