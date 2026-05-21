@@ -9,6 +9,8 @@ jobs:
   bump-version:
     runs-on: ubuntu-latest
     if: "!startsWith(github.event.head_commit.message, 'chore: bump version')"
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
