@@ -1,6 +1,6 @@
 # Label catalog
 
-This file is the single source of truth for the 13 factory labels used by the `issues` skill. Consult it for label recovery — do not invent labels outside this catalog.
+This file is the single source of truth for the 14 factory labels used by the `issues` skill. Consult it for label recovery — do not invent labels outside this catalog.
 
 | name | color | description | purpose |
 |---|---|---|---|
@@ -17,3 +17,4 @@ This file is the single source of truth for the 13 factory labels used by the `i
 | `blocked` | `EF4444` | Blocked by a dependency or issue | Work cannot proceed until an external dependency resolves |
 | `cancelled` | `F87171` | Abandoned, not completed | Issue closed without being completed |
 | `adr` | `2DD4BF` | Architecture Decision Record | Marks an Architecture Decision Record issue |
+| `style-guide` | `F472B6` | Style guide entry | Marks an issue as a style guide entry to be authored by `/document` |

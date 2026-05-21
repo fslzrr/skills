@@ -9,14 +9,27 @@ Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestra
 
 You need an `ai-ready` TASK issue number. If not provided, ask for it.
 
+## ADR guard
+
+Before starting, read `docs/adr/` once per session:
+
+- If the directory does not exist or is empty, proceed without constraints.
+- If ADRs exist, treat every recorded decision as a hard constraint. Do not propose, implement, or accept approaches that contradict them.
+
+## Style guide guard
+
+Before starting, read `docs/style-guide/` once per session:
+
+- If the directory does not exist or is empty, proceed without constraints.
+- If entries exist, treat every documented pattern as a hard constraint for UI-related decisions — unless the current work is explicitly superseding an entry.
+
 ## The implementation loop
 
 ### Setup
 
 1. Use `/issues` to transition the TASK from `ai-ready` → `ai-in-progress`.
-2. Read `docs/adr/` once per session before planning the implementation. If the directory does not exist or is empty, proceed without constraints. If ADRs exist, treat every recorded decision as a hard constraint throughout this implementation.
-3. Use `/issues` to read the full TASK content: goal, acceptance criteria, affected areas, testing approach, parent PRD.
-4. **Check for the `adr` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below instead of the TDD loop.
+2. Use `/issues` to read the full TASK content: goal, acceptance criteria, affected areas, testing approach, parent PRD.
+3. **Check for the `adr` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below instead of the TDD loop.
 
 ---
 
@@ -40,78 +53,78 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ### Plan (TDD path — skip if `adr` label present)
 
-5. Map each acceptance criterion to one SUBTASK. Each SUBTASK is one RED/GREEN/REFACTOR cycle.
-6. Present the SUBTASK plan to the human:
+4. Map each acceptance criterion to one SUBTASK. Each SUBTASK is one RED/GREEN/REFACTOR cycle.
+5. Present the SUBTASK plan to the human:
    - List each SUBTASK with its corresponding acceptance criterion
    - Proposed order of implementation (dependencies first)
    Say: "Here is my plan for implementing this TASK as SUBTASKs. Confirm or adjust the order before I begin."
-7. Wait for explicit human approval. Apply any adjustments.
+6. Wait for explicit human approval. Apply any adjustments.
 
 ### Execute (repeat for each SUBTASK)
 
-8. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict) in the prompt. The subagent follows `skills/tdd/SKILL.md` — you do not repeat its procedure.
+7. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict) in the prompt. The subagent follows `skills/tdd/SKILL.md` — you do not repeat its procedure.
 
    Wait for the subagent's return summary (files changed, test names added, RED→GREEN evidence).
 
    - If the subagent reports a blocker per `skills/tdd/SKILL.md`'s hard rules, stop. Surface the blocker to the human and wait for guidance before continuing.
 
-9. **Spawn the `linter` subagent** on the staged changes. The subagent follows `skills/lint/SKILL.md` — you do not repeat its procedure.
+8. **Spawn the `linter` subagent** on the staged changes. The subagent follows `skills/lint/SKILL.md` — you do not repeat its procedure.
 
    Wait for the subagent's return summary (per-bucket status, files re-staged, hard-stop details if any).
 
-   - If every bucket **passes or was silently skipped** (no tooling detected): continue to step 10.
+   - If every bucket **passes or was silently skipped** (no tooling detected): continue to step 9.
 
    - If a bucket **hard-stops**:
      - Fix the violations directly in the code — do **not** re-spawn `programmer`. Lint hard-stops are style/format issues, not behavioral regressions.
      - Re-spawn the `linter` subagent.
      - If this is the **3rd consecutive lint hard-stop on the same SUBTASK**: stop. Show the subagent's last hard-stop output to the human and wait for guidance before continuing.
 
-10. **Spawn the `reviewer` subagent** on the staged changes. The subagent follows `skills/review/SKILL.md` — you do not repeat its procedure.
+9. **Spawn the `reviewer` subagent** on the staged changes. The subagent follows `skills/review/SKILL.md` — you do not repeat its procedure.
 
     Wait for the subagent's return summary (BLOCKING findings, ADVISORY findings, verdict).
 
     - If verdict is **FAIL** (BLOCKING findings exist):
       - Record the feedback
-      - Return to step 8 — re-spawn `programmer` with the BLOCKING findings as explicit constraints
+      - Return to step 7 — re-spawn `programmer` with the BLOCKING findings as explicit constraints
       - If this is the **3rd consecutive FAIL on the same SUBTASK**: stop. Present all accumulated BLOCKING feedback to the human and wait for guidance.
 
     - If verdict is **PASS** (zero BLOCKING findings):
       - Record any ADVISORY findings in the advisory log
-      - Continue to step 11
+      - Continue to step 10
 
-11. **Commit the SUBTASK**:
+10. **Commit the SUBTASK**:
     ```bash
     git add <affected files>
     git commit -m "<type>(<scope>): <description>"
     ```
     Type and scope are determined independently per commit based on the nature of the change — left to AI judgment. One atomic commit per SUBTASK. Do not batch multiple SUBTASKs into one commit.
 
-12. **Run all new or modified tests** and confirm everything is GREEN before starting the next SUBTASK.
+11. **Run all new or modified tests** and confirm everything is GREEN before starting the next SUBTASK.
 
 ### Full suite check
 
-13. After all SUBTASKs are committed, run the **full test suite**.
-    - If it fails on something **within scope** of this TASK: treat it as a new SUBTASK. Return to step 8.
+12. After all SUBTASKs are committed, run the **full test suite**.
+    - If it fails on something **within scope** of this TASK: treat it as a new SUBTASK. Return to step 7.
     - If it fails on something **out of scope**: stop. Explain what is failing, why fixing it would go out of scope, and wait for the human to decide.
 
 ### Pre-PR gate
 
-14. Present the **advisory log** accumulated across all SUBTASKs:
+13. Present the **advisory log** accumulated across all SUBTASKs:
     "Here are the advisory findings from the implementation. None of these are blocking, but they are genuine improvements. Do you want to address any before opening the PR?"
     Wait for the human's decision. If they want changes, implement them following the same RED/GREEN/REFACTOR discipline.
 
-15. Ask: "Implementation is complete and all tests are GREEN. Shall I open the PR?"
+14. Ask: "Implementation is complete and all tests are GREEN. Shall I open the PR?"
     Wait for explicit confirmation.
 
 ### PR and handoff
 
-16. Open the PR:
+15. Open the PR:
     - Title: mirror the TASK title exactly
     - Body: include a summary of what was implemented and `closes #<TASK-number>`
 
-17. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
+16. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
 
-18. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch. The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
+17. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch. The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
 
 ## Hard rules
 

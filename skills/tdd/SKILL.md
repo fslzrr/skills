@@ -7,10 +7,17 @@ Execute a RED → GREEN → REFACTOR cycle for a single behavior.
 
 ## ADR guard
 
-Before exploring the codebase, read `docs/adr/` once per session:
+Before starting, read `docs/adr/` once per session:
 
 - If the directory does not exist or is empty, proceed without constraints.
 - If ADRs exist, treat every recorded decision as a hard constraint. Do not propose, implement, or accept approaches that contradict them.
+
+## Style guide guard
+
+Before starting, read `docs/style-guide/` once per session:
+
+- If the directory does not exist or is empty, proceed without constraints.
+- If entries exist, treat every documented pattern as a hard constraint for UI-related decisions — unless the current work is explicitly superseding an entry.
 
 ## Input
 
