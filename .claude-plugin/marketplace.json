@@ -6,8 +6,11 @@
   "plugins": [
     {
       "name": "fslzrr",
-      "source": "github",
-      "repo": "fslzrr/skills"
+      "description": "fslzrr's skills and agents",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/fslzrr/skills.git"
+      }
     }
   ]
 }
