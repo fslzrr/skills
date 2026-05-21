@@ -9,6 +9,9 @@ Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestra
 
 You need an `ai-ready` TASK issue number. If not provided, ask for it.
 
+- **chrome-devtools-mcp** — must be running and connected to a live Chrome instance before starting any SUBTASK that requires browser validation.
+  > **Warning:** Do not manually open Chrome DevTools while chrome-devtools-mcp is active — opening DevTools manually crashes the MCP-controlled browser session.
+
 ## ADR guard
 
 Before starting, read `docs/adr/` once per session:
@@ -29,7 +32,7 @@ Before starting, read `docs/style-guide/` once per session:
 
 1. Use `/issues` to transition the TASK from `ai-ready` → `ai-in-progress`.
 2. Use `/issues` to read the full TASK content: goal, acceptance criteria, affected areas, testing approach, parent PRD.
-3. **Check for the `adr` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below instead of the TDD loop.
+3. **Check for the `adr` or `style-guide` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below. If labeled `style-guide`, follow the **Style guide routing** path below. Both skip the TDD loop entirely.
 
 ---
 
@@ -39,7 +42,7 @@ When the TASK carries the `adr` label:
 
 a. **Call `/document`** — pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
 
-b. **Do not spawn `linter` or `reviewer`** — ADR tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
+b. **Do not spawn `programmer`, `linter`, or `reviewer`** — ADR tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
 
 c. **Commit the ADR file** atomically — one commit for the ADR file, following the same one-atomic-commit-per-SUBTASK rule as regular TASKs:
    ```bash
@@ -51,7 +54,25 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ---
 
-### Plan (TDD path — skip if `adr` label present)
+### Style guide routing (only when TASK has the `style-guide` label)
+
+When the TASK carries the `style-guide` label:
+
+a. **Call `/document`** — pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
+
+b. **Do not spawn `programmer`, `linter`, or `reviewer`** — style guide tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
+
+c. **Commit the style guide file** atomically — one commit for the style guide file, following the same one-atomic-commit-per-SUBTASK rule as regular TASKs:
+   ```bash
+   git add docs/style-guide/<entry-file>
+   git commit -m "docs(style-guide): <description of the pattern documented>"
+   ```
+
+d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirmation, open PR, transition to `in-code-review`).
+
+---
+
+### Plan (TDD path — skip if `adr` or `style-guide` label present)
 
 4. Map each acceptance criterion to one SUBTASK. Each SUBTASK is one RED/GREEN/REFACTOR cycle.
 5. Present the SUBTASK plan to the human:
@@ -90,7 +111,24 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
     - If verdict is **PASS** (zero BLOCKING findings):
       - Record any ADVISORY findings in the advisory log
-      - Continue to step 10
+      - Continue to step 9a
+
+9a. **Browser validation (UI tasks only)** — Fetch the TASK body with `gh issue view <TASK-number> --json body` (where `<TASK-number>` is the issue number passed to `/implement` at step 1) and check for a `## Prototype` section containing a fenced `html` code block. If no such section is present, skip this step entirely.
+
+    If a `## Prototype` section is present, verify that chrome-devtools-mcp is reachable before proceeding. If it is not reachable, stop and ask the human to start it before continuing.
+
+    Run the chrome-devtools-mcp validation loop before committing:
+
+    1. **Visual match** — take a screenshot via chrome-devtools-mcp and compare the rendered output against the HTML prototype from the TASK body. Confirm layout, colors, and component structure match.
+    2. **Functional interaction** — exercise the interactive elements described in the prototype (clicks, inputs, navigation) and confirm they behave as specified.
+    3. **Console/network health** — inspect the DevTools console and network panel for errors, unhandled rejections, or failed requests.
+
+    If validation **passes** all three checks: continue to step 10.
+
+    If validation **fails** any check:
+    - Identify the specific mismatch or error
+    - Self-correct: fix the implementation to address the failure, then return to step 8 (linter) and step 9 (reviewer) before retrying the validation loop
+    - If this is the **3rd consecutive validation failure on the same SUBTASK**: stop. Present a detailed failure report (which check failed, what was observed vs. expected, what fixes were attempted) and wait for the human to decide.
 
 10. **Commit the SUBTASK**:
     ```bash
@@ -135,4 +173,4 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 - One atomic commit per SUBTASK — this applies to ADR file commits as well as code commits.
 - Do not skip the full suite check after all SUBTASKs.
 - Do not open a PR without explicit human confirmation.
-- When the `adr` label is present, never spawn `programmer`, `linter`, or `reviewer` — always route to `/document`.
+- When the `adr` or `style-guide` label is present, never spawn `programmer`, `linter`, or `reviewer` — always route to `/document`.
