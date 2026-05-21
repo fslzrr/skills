@@ -113,7 +113,22 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
     - If verdict is **PASS** (zero BLOCKING findings):
       - Record any ADVISORY findings in the advisory log
-      - Continue to step 10
+      - Continue to step 9a
+
+9a. **Browser validation (UI tasks only)** — Fetch the TASK body with `gh issue view <TASK-number> --json body` and check for a `## Prototype` section containing a fenced `html` code block. If no such section is present, skip this step entirely.
+
+    If a `## Prototype` section is present, run the chrome-devtools-mcp validation loop before committing:
+
+    1. **Visual match** — take a screenshot via chrome-devtools-mcp and compare the rendered output against the HTML prototype from the TASK body. Confirm layout, colors, and component structure match.
+    2. **Functional interaction** — exercise the interactive elements described in the prototype (clicks, inputs, navigation) and confirm they behave as specified.
+    3. **Console/network health** — inspect the DevTools console and network panel for errors, unhandled rejections, or failed requests.
+
+    If validation **passes** all three checks: continue to step 10.
+
+    If validation **fails** any check:
+    - Identify the specific mismatch or error
+    - Self-correct: fix the implementation to address the failure, then return to step 8 (linter) and step 9 (reviewer) before retrying the validation loop
+    - If this is the **3rd consecutive validation failure on the same SUBTASK**: stop. Present a detailed failure report (which check failed, what was observed vs. expected, what fixes were attempted) and wait for the human to decide.
 
 10. **Commit the SUBTASK**:
     ```bash
