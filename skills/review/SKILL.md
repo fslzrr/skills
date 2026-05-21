@@ -46,9 +46,9 @@ If a path or diff is specified, review those changes. Otherwise, review all stag
 - **UI / frontend**:
   - **Prototype fidelity** — implementation matches the approved prototype embedded in the TASK body (read via `gh issue view <TASK-number> --json body`)
   - **Style guide compliance** — implementation follows the relevant `docs/style-guide/` entry, or explicitly supersedes it with a documented reason
-  - **Browser validation evidence** — the full chrome-devtools-mcp loop ran and passed (visual match, functional interaction, console/network health); evidence must be present in the TASK output
+  - **Browser validation evidence** — the chrome-devtools-mcp loop was run during implementation (visual match, functional interaction, console/network health) and a screenshot or devtools summary comment is present on the TASK issue as evidence
   - **Expanded accessibility** — semantic HTML, ARIA labels, keyboard navigation, color contrast, loading states, error states, and empty states all verified
-  - **Style guide coverage** — a documentation TASK was created and completed for any new component or design decision introduced
+  - **Style guide documentation** — a documentation TASK was created and completed for any new component or design decision introduced
 
 ## Output format
 
