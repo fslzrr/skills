@@ -9,6 +9,11 @@ Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestra
 
 You need an `ai-ready` TASK issue number. If not provided, ask for it.
 
+### MCP prerequisites
+
+- **chrome-devtools-mcp** — required for browser validation of UI tasks. Must be running and connected to a live Chrome instance before starting any UI SUBTASK.
+  > **Warning:** Do not manually open Chrome DevTools while chrome-devtools-mcp is active — opening DevTools manually crashes the MCP-controlled browser session.
+
 ## ADR guard
 
 Before starting, read `docs/adr/` once per session:
