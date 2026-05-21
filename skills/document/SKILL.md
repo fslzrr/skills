@@ -114,9 +114,18 @@ Inspect the TASK body for a reference to a linked implementation TASK (e.g. "See
 
 If no linked implementation TASK is referenced, or if the TASK is decision-only with no prototype, **omit the HTML example section entirely** — do not invent one.
 
-### S3. Draft the style guide entry and present for review
+### S3. Determine the write path
 
-Load the skeleton from [templates/style-guide.md](templates/style-guide.md) and populate each section using the values extracted in Steps S1–S2:
+Derive the kebab-case slug from the entry name (lowercase, spaces and special characters replaced with hyphens). For example, `Primary Button` → `primary-button`.
+
+The target file is:
+```
+docs/style-guide/[slug]/index.md
+```
+
+### S4. Draft the style guide entry and present for review
+
+Load the skeleton from [templates/style-guide.md](templates/style-guide.md) and populate each section using the values extracted in Steps S1–S2 and the slug from Step S3:
 
 - Use today's date for the `Date` field.
 - Populate **Overview** from the rationale and any description in the TASK body.
@@ -127,15 +136,6 @@ Load the skeleton from [templates/style-guide.md](templates/style-guide.md) and 
 Present the full draft to the human. Say: "Here is the style guide entry draft. Confirm to write it, or request changes."
 
 Wait for explicit confirmation. If the human requests changes, apply them and show the updated draft. Repeat until confirmed.
-
-### S4. Determine the write path
-
-Derive the kebab-case slug from the entry name (lowercase, spaces and special characters replaced with hyphens). For example, `Primary Button` → `primary-button`.
-
-The target file is:
-```
-docs/style-guide/[slug]/index.md
-```
 
 ### S5. Create directory if needed
 
