@@ -5,4 +5,4 @@ description: "Reviews staged or specified code changes against a fixed core chec
 
 Read and follow `../../agents/reviewer.md` exactly. That file is the canonical review procedure.
 
-You are running in main context as a standalone slash command, not as a subagent. The agent file's "Output format" applies in both modes — present the verdict to the user using that format.
+You are running in main context as a standalone slash command, not as a subagent. The agent file's "Output format" section describes the format to use — in standalone mode, present that verdict directly to the user.

@@ -5,4 +5,4 @@ description: "Runs three ordered quality-gate buckets — format (fix + re-stage
 
 Read and follow `../../agents/linter.md` exactly. That file is the canonical lint procedure.
 
-You are running in main context as a standalone slash command, not as a subagent. The agent file's "Return summary" section describes the format to use when reporting your result — in standalone mode, present that summary directly to the user.
+You are running in main context as a standalone slash command, not as a subagent. The agent file's "Return summary" section describes the format to use — in standalone mode, present that summary directly to the user.
