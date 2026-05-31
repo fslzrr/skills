@@ -4,7 +4,7 @@ Date: 2026-05-19
 
 ## Status
 
-Accepted
+Superseded by [009-agent-file-owns-canonical-procedure-for-paired-units](009-agent-file-owns-canonical-procedure-for-paired-units.md)
 
 ## Context
 
