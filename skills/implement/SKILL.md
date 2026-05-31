@@ -3,7 +3,7 @@ name: implement
 description: "Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, spawns the programmer/linter/reviewer subagents per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says 'implement task #N', 'start implementing', 'work on this task' or 'implement this'."
 ---
 
-Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestrator — you drive each SUBTASK by spawning the `programmer`, `linter`, and `reviewer` subagents, manage the git history, and own the PR lifecycle. Subagents own their procedures (defined in their respective SKILL.md files); your job is to react to their return summaries, not to repeat their work.
+Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestrator — you drive each SUBTASK by spawning the `programmer`, `linter`, and `reviewer` subagents, manage the git history, and own the PR lifecycle. Subagents own their procedures (defined in their respective `agents/<name>.md` files); your job is to react to their return summaries, not to repeat their work.
 
 ## Prerequisites
 
@@ -83,13 +83,13 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ### Execute (repeat for each SUBTASK)
 
-7. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict) in the prompt. The subagent follows `skills/tdd/SKILL.md` — you do not repeat its procedure.
+7. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict) in the prompt. The subagent follows `agents/programmer.md` — you do not repeat its procedure.
 
    Wait for the subagent's return summary (files changed, test names added, RED→GREEN evidence).
 
-   - If the subagent reports a blocker per `skills/tdd/SKILL.md`'s hard rules, stop. Surface the blocker to the human and wait for guidance before continuing.
+   - If the subagent reports a blocker per `agents/programmer.md`'s hard rules, stop. Surface the blocker to the human and wait for guidance before continuing.
 
-8. **Spawn the `linter` subagent** on the staged changes. The subagent follows `skills/lint/SKILL.md` — you do not repeat its procedure.
+8. **Spawn the `linter` subagent** on the staged changes. The subagent follows `agents/linter.md` — you do not repeat its procedure.
 
    Wait for the subagent's return summary (per-bucket status, files re-staged, hard-stop details if any).
 
@@ -100,7 +100,7 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
      - Re-spawn the `linter` subagent.
      - If this is the **3rd consecutive lint hard-stop on the same SUBTASK**: stop. Show the subagent's last hard-stop output to the human and wait for guidance before continuing.
 
-9. **Spawn the `reviewer` subagent** on the staged changes. The subagent follows `skills/review/SKILL.md` — you do not repeat its procedure.
+9. **Spawn the `reviewer` subagent** on the staged changes. The subagent follows `agents/reviewer.md` — you do not repeat its procedure.
 
     Wait for the subagent's return summary (BLOCKING findings, ADVISORY findings, verdict).
 
@@ -167,7 +167,7 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 ## Hard rules
 
 - Never start the next SUBTASK until the current one is GREEN, lint is clean, and the `reviewer` subagent has returned PASS.
-- Never refactor while RED (this is enforced inside `skills/tdd/SKILL.md` via the `programmer` subagent, but also your responsibility as orchestrator).
+- Never refactor while RED (this is enforced inside `agents/programmer.md` via the `programmer` subagent, but also your responsibility as orchestrator).
 - Never re-spawn `programmer` to resolve lint hard-stops — fix them directly in the code.
 - Never repeat or paraphrase a subagent's internal procedure in your own messages — trust the return summary; the raw work stays inside the subagent's context by design.
 - One atomic commit per SUBTASK — this applies to ADR file commits as well as code commits.
