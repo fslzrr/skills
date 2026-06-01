@@ -1,6 +1,16 @@
 ---
 name: issues
 description: "Manages GitHub issues for the software factory — creates, reads, updates, and lists PRD and TASK issues; transitions states via labels; shows a status dashboard; and recovers missing labels on demand during write operations. TRIGGER when: user says 'show status', 'list issues', `what's in progress`, 'update issue #N', 'mark as blocked', 'create an issue', 'close this issue', or any other GitHub issue management request."
+allowed-tools:
+  - Bash(gh issue create:*)
+  - Bash(gh issue view:*)
+  - Bash(gh issue edit:*)
+  - Bash(gh issue close:*)
+  - Bash(gh issue comment:*)
+  - Bash(gh issue list:*)
+  - Bash(gh label list:*)
+  - Bash(gh label create:*)
+  - Bash(bash *skills/issues/scripts/status-dashboard.sh:*)
 ---
 
 Manage GitHub issues for the software factory. You are the authoritative interface between the factory and GitHub — you understand what every label means, what transitions are valid, and what state each issue should be in.
