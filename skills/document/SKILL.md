@@ -1,6 +1,9 @@
 ---
 name: document
 description: "Drafts a Nygard-format ADR or a style guide entry from a TASK issue, presents it for human confirmation, writes it to the appropriate docs/ directory, and handles supersession. TRIGGER when: user says 'document this decision', 'write an ADR', 'draft an ADR', 'create an ADR', 'write a style guide entry', or /implement is working on an ADR-labeled or style-guide-labeled TASK."
+allowed-tools:
+  - Bash(gh issue view:*)
+  - Bash(mkdir -p docs/*)
 ---
 
 Draft documentation from a TASK issue, present it for human confirmation, write it to the appropriate `docs/` directory, and update any superseded document.

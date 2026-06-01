@@ -1,6 +1,8 @@
 ---
 name: interview
 description: "Conducts a relentless requirements interview — one question at a time with recommended answers and pushback — until a full shared understanding is confirmed and handed off to /prd. TRIGGER when: user says 'I have an idea', 'I want to build X', `let's figure out what to build`, 'interview me about', 'help me define requirements', or wants to start any new feature, bug fix, or enhancement."
+allowed-tools:
+  - Agent(Explore)
 ---
 
 Conduct a relentless requirements interview until you and the human have reached a complete, shared understanding of what needs to be built. Nothing should be left ambiguous or deferred to AI judgment.
@@ -24,7 +26,7 @@ Before starting, read `docs/style-guide/` once per session:
 - Ask **one question at a time**. Wait for the answer before asking the next.
 - For every question, **provide your recommended answer** and explain why. The human should be able to agree, disagree, or refine — not start from nothing.
 - **Challenge every answer**. Do not accept a response at face value. Push back, probe for edge cases, expose assumptions. If an answer contradicts something said earlier, point it out.
-- **Explore the codebase** before asking about anything that could be answered by reading the code. Perform this as a dedicated codebase-mapping step — do not do it inline in the main thread. Do not ask the human what already exists — find it yourself.
+- **Explore the codebase** before asking about anything that could be answered by reading the code. Perform this as a dedicated codebase-mapping step — spawn the Explore subagent rather than doing it inline in the main thread. Do not ask the human what already exists — find it yourself.
 - **Walk every branch of the design tree**. For each decision made, identify what decisions that unlocks or depends on, and pursue those next. Do not leave any branch unresolved.
 - Do not move on until a decision is fully resolved. Partial answers lead to partial implementations.
 

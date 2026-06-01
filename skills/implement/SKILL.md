@@ -1,6 +1,15 @@
 ---
 name: implement
 description: "Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, spawns the programmer/linter/reviewer subagents per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says 'implement task #N', 'start implementing', 'work on this task' or 'implement this'."
+allowed-tools:
+  - Agent(fslzrr:programmer)
+  - Agent(fslzrr:linter)
+  - Agent(fslzrr:reviewer)
+  - Bash(gh issue view:*)
+  - Bash(gh issue edit:*)
+  - Bash(gh pr create:*)
+  - Bash(git add:*)
+  - Bash(git commit:*)
 ---
 
 Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestrator — you drive each SUBTASK by spawning the `programmer`, `linter`, and `reviewer` subagents, manage the git history, and own the PR lifecycle. Subagents own their procedures (defined in their respective `agents/<name>.md` files); your job is to react to their return summaries, not to repeat their work.
