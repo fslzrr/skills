@@ -1,6 +1,7 @@
 ---
 name: tdd
 description: "Executes a single RED/GREEN/REFACTOR cycle for a described behavior — writes failing tests first, makes them pass with minimal code, then refactors cleanly. TRIGGER when: user says 'do TDD for X', 'write a test for', 'implement this with TDD', 'red green refactor', or wants to implement any behavior test-first."
+allowed-tools: []
 ---
 
 Read and follow `../../agents/programmer.md` exactly. That file is the canonical TDD procedure.
