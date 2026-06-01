@@ -1,6 +1,8 @@
 ---
 name: lint
 description: "Runs three ordered quality-gate buckets — format (fix + re-stage), lint (check-only → auto-fix → hard-stop), typecheck (project-wide → hard-stop) — each discovered independently from declared project scripts; notifies and skips missing buckets; fail-fast on hard-stop. TRIGGER when: user says 'run lint', 'lint the code', 'check lint', 'run format', 'typecheck'."
+allowed-tools:
+  - Bash(git add:*)
 ---
 
 Read and follow `../../agents/linter.md` exactly. That file is the canonical lint procedure.
