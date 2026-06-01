@@ -2,9 +2,9 @@
 name: implement
 description: "Orchestrates the full TDD implementation loop for an ai-ready TASK — maps acceptance criteria to SUBTASKs, spawns the programmer/linter/reviewer subagents per SUBTASK, commits atomically, runs the full suite, then opens a PR after human approval. TRIGGER when: user says 'implement task #N', 'start implementing', 'work on this task' or 'implement this'."
 allowed-tools:
-  - Agent(programmer)
-  - Agent(linter)
-  - Agent(reviewer)
+  - Agent(fslzrr:programmer)
+  - Agent(fslzrr:linter)
+  - Agent(fslzrr:reviewer)
   - Bash(gh issue view:*)
   - Bash(gh issue edit:*)
   - Bash(gh pr create:*)
