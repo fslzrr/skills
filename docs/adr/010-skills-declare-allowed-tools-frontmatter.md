@@ -18,9 +18,11 @@ Three forces are in play:
 
 ## Decision
 
-Every `SKILL.md` in `skills/` declares an `allowed-tools:` field in its frontmatter at **medium granularity** — the skill's verb space (e.g. `Bash(gh issue:*)`, `Bash(gh label:*)` for `/issues`), not tool-wide (`Bash(gh:*)`) and not per-subcommand (`Bash(gh issue create:*)`, `Bash(gh issue edit:*)`).
+Every `SKILL.md` in `skills/` declares an `allowed-tools:` field in its frontmatter at **medium granularity** — the skill's verb space, enumerated explicitly to exclude any carved-out destructive verb. For `/issues`, that is `Bash(gh issue create:*) Bash(gh issue view:*) Bash(gh issue edit:*) Bash(gh issue close:*) Bash(gh issue comment:*) Bash(gh issue list:*)` (deliberately omitting `delete`), not tool-wide (`Bash(gh:*)`, which over-approves outside the skill's intent) and not per-flag (`Bash(gh issue edit --add-label:*)`, a maintenance treadmill).
 
-Loss-of-work operations are explicitly excluded from every skill's allow-list — no pattern may match `rm -rf`, `git push --force`, `git reset --hard`, `git branch -D`, `gh issue delete`, or `gh repo delete`. These commands continue to prompt as a tool-level checkpoint regardless of which skill is running.
+When a tool's verb set contains a carved-out destructive verb, the safe verbs must be enumerated explicitly — a broader pattern would pre-approve the destructive one because the frontmatter allow-list does not support deny rules (deny rules live in `settings.json` only, per Claude Code's permission spec).
+
+Loss-of-work operations are explicitly excluded from every skill's allow-list — no pattern may match `rm -rf`, `git push --force`, `git reset --hard`, `git branch -D`, `gh issue delete`, or `gh repo delete`. These commands continue to prompt because no skill-level pattern matches them — the carve-out is enforced by the *absence* of an allowing pattern, not by a separate tool-level checkpoint.
 
 Tools auto-allowed in interactive sessions (`Read`, `Write`, `Edit`, `Grep`, `Glob`) are not declared — declaring them would be dead config. Subagent files (`agents/*.md`) are not modified — `allowed-tools` is not a supported frontmatter field on subagent definitions.
 
@@ -36,7 +38,7 @@ Tools auto-allowed in interactive sessions (`Read`, `Write`, `Edit`, `Grep`, `Gl
 ## Alternatives Considered
 
 - **Loose granularity** (`Bash(gh:*)`, `Bash(bash:*)`). Rejected — over-permissive: pre-approves commands outside the skill's intent (e.g. `gh repo delete` while running `/issues`), defeating the carve-out's safety value.
-- **Tight per-subcommand granularity** (one entry per subcommand). Rejected — high-maintenance treadmill: every new subcommand the skill picks up forces a frontmatter update, reintroducing the kind of duplicated maintenance ADR-009 removed.
+- **Per-flag granularity** (one entry per flag combination, e.g. `Bash(gh issue edit --add-label "ai-ready":*)`). Rejected — high-maintenance treadmill: every new flag combination the skill picks up forces a frontmatter update, reintroducing the kind of duplicated maintenance ADR-009 removed. Per-verb enumeration (one entry per subcommand verb) is the chosen form because it stops at the verb-space level while still excluding carve-out verbs.
 - **Definition-A "any mutation prompts" policy** (every state-mutating call prompts regardless of declaration). Rejected — leaves the high-volume friction intact (`/implement` per-commit, `/document` per-file-write, `/issues` per-state-change); the PRD goal is not met.
 - **CI lint script** to check for frontmatter presence. Rejected — presence ≠ correctness; the check passes for skills with wrong or sloppy declarations, creating false confidence. Correctness is the judgment call the reviewer must make anyway.
 - **Modifying `/review`** to enforce the policy directly. Rejected — `/review` is a generally-shipped skill, and this policy is project-specific. The existing ADR-guard mechanism picks up the new ADR automatically without any skill modification.
