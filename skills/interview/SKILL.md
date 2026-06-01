@@ -26,7 +26,7 @@ Before starting, read `docs/style-guide/` once per session:
 - Ask **one question at a time**. Wait for the answer before asking the next.
 - For every question, **provide your recommended answer** and explain why. The human should be able to agree, disagree, or refine — not start from nothing.
 - **Challenge every answer**. Do not accept a response at face value. Push back, probe for edge cases, expose assumptions. If an answer contradicts something said earlier, point it out.
-- **Explore the codebase** before asking about anything that could be answered by reading the code. Perform this as a dedicated codebase-mapping step — do not do it inline in the main thread. Do not ask the human what already exists — find it yourself.
+- **Explore the codebase** before asking about anything that could be answered by reading the code. Perform this as a dedicated codebase-mapping step — spawn the Explore subagent rather than doing it inline in the main thread. Do not ask the human what already exists — find it yourself.
 - **Walk every branch of the design tree**. For each decision made, identify what decisions that unlocks or depends on, and pursue those next. Do not leave any branch unresolved.
 - Do not move on until a decision is fully resolved. Partial answers lead to partial implementations.
 
