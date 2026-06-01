@@ -5,6 +5,8 @@ allowed-tools:
   - Agent(Explore)
   - Bash(gh issue create:*)
   - Bash(gh issue edit:*)
+  - Bash(gh label list:*)
+  - Bash(gh label create:*)
 ---
 
 Structure the confirmed findings from a `/interview` session into a PRD and publish it as a GitHub issue. You own the structuring responsibility — `/interview` discovers, you impose the template. Before structuring anything, you explore the codebase deeply so the PRD is grounded in what actually exists.

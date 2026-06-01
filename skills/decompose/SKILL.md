@@ -6,6 +6,8 @@ allowed-tools:
   - Bash(gh issue view:*)
   - Bash(gh issue edit:*)
   - Bash(gh issue comment:*)
+  - Bash(gh label list:*)
+  - Bash(gh label create:*)
   - Bash(rm /tmp/prototype-*.html)
 ---
 
