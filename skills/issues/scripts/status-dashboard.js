@@ -266,8 +266,10 @@ function renderBlockedSection(issues) {
 // `#N [<label>] title` where `<label>` is the state, optionally suffixed by
 // `, blocked` when the cross-cutting `blocked` label is present.
 //
-// A TASK's parent in the tree is its first live blocker that is also in the
-// same subtree's task set; TASKs with no in-subtree blocker are roots.
+// A TASK's parent in the tree is its LOWEST-numbered live blocker that is
+// also in the same subtree's task set; TASKs with no in-subtree blocker are
+// roots. Diamonds (multi-blocked TASKs) appear exactly once with the other
+// in-subtree blockers surfaced via an `(also blocked by ...)` annotation.
 // Children are rendered in input order, which makes the snapshot
 // deterministic. Cross-subtree blocker edges (orphan blocked by parented
 // TASK, or vice-versa) are silently dropped at this stage — they will be
@@ -309,30 +311,58 @@ function renderTasksByParentPrdSection(issues) {
   return out;
 }
 
+// Returns the in-subtree blocker numbers for a task, sorted ascending. A
+// blocker is "in subtree" when it resolves to another task in the same
+// subtree's task set; cross-subtree blocker edges (handled elsewhere) are
+// filtered out here. Sorting ascending is what makes the diamond placement
+// (lowest-numbered parent) and the annotation order (ascending) deterministic
+// regardless of the order blockers appear in the issue body.
+function sortedInSubtreeBlockers(blockers, taskNumbers) {
+  return blockers.filter((b) => taskNumbers.has(b)).sort((a, b) => a - b);
+}
+
+// Returns the `(also blocked by #M[, #L]...)` annotation suffix (with leading
+// space) when a task has more than one in-subtree blocker, listing the
+// blockers that are NOT the chosen tree parent in ascending order. Returns
+// `''` when the task has zero or one in-subtree blocker.
+function otherBlockersAnnotation(sortedBlockers) {
+  if (sortedBlockers.length <= 1) return '';
+  const others = sortedBlockers.slice(1);
+  return ` (also blocked by ${others.map((n) => `#${n}`).join(', ')})`;
+}
+
 // Renders one subtree block: a header line, an ASCII dependency tree over
-// the given task set, and a trailing blank line. Each task's parent is its
-// first live blocker that is also in this subtree's task set; tasks with no
-// in-subtree blocker are roots. Children are appended in input order so the
-// snapshot is deterministic. Used for both per-PRD subtrees and the
-// `Unparented TASKs` subtree.
+// the given task set, and a trailing blank line. A task with at least one
+// in-subtree blocker is placed under its LOWEST-numbered in-subtree blocker
+// (so a "diamond" — a task with multiple in-subtree blockers — appears
+// exactly once in the tree); any other in-subtree blockers are surfaced via
+// an `(also blocked by #M[, #L]...)` annotation appended to the task's line.
+// Tasks with no in-subtree blocker are roots. Children are appended in input
+// order so the snapshot is deterministic. Used for both per-PRD subtrees and
+// the `Unparented TASKs` subtree.
 function renderSubtree(header, tasks, liveBlockers) {
   const taskNumbers = new Set(tasks.map((t) => t.number));
   const childrenOf = new Map(tasks.map((t) => [t.number, []]));
+  const annotationOf = new Map();
   const roots = [];
 
   for (const task of tasks) {
-    const blockers = liveBlockers.get(task.number) || [];
-    const inSubtreeParent = blockers.find((b) => taskNumbers.has(b));
-    if (inSubtreeParent === undefined) {
+    const sorted = sortedInSubtreeBlockers(
+      liveBlockers.get(task.number) || [],
+      taskNumbers,
+    );
+    if (sorted.length === 0) {
       roots.push(task);
-    } else {
-      childrenOf.get(inSubtreeParent).push(task);
+      continue;
     }
+    childrenOf.get(sorted[0]).push(task);
+    const annotation = otherBlockersAnnotation(sorted);
+    if (annotation !== '') annotationOf.set(task.number, annotation);
   }
 
   let out = `${header}\n`;
   roots.forEach((root, i) => {
-    out += renderTreeNode(root, childrenOf, '', i === roots.length - 1);
+    out += renderTreeNode(root, childrenOf, annotationOf, '', i === roots.length - 1);
   });
   out += '\n';
   return out;
@@ -343,9 +373,10 @@ function renderSubtree(header, tasks, liveBlockers) {
 // controls whether this node uses `└── ` (last child) or `├── ` (sibling
 // follows), and whether the continuation prefix for its children uses 4
 // spaces (last) or `│   ` (sibling follows).
-function renderTreeNode(task, childrenOf, prefix, isLast) {
+function renderTreeNode(task, childrenOf, annotationOf, prefix, isLast) {
   const connector = isLast ? '└── ' : '├── ';
-  let out = `${prefix}${connector}#${task.number} [${taskNodeLabel(task)}] ${task.title}\n`;
+  const annotation = annotationOf.get(task.number) || '';
+  let out = `${prefix}${connector}#${task.number} [${taskNodeLabel(task)}] ${task.title}${annotation}\n`;
 
   const children = childrenOf.get(task.number) || [];
   const childPrefix = prefix + (isLast ? '    ' : '│   ');
@@ -353,6 +384,7 @@ function renderTreeNode(task, childrenOf, prefix, isLast) {
     out += renderTreeNode(
       child,
       childrenOf,
+      annotationOf,
       childPrefix,
       i === children.length - 1,
     );
