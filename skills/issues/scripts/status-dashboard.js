@@ -26,29 +26,97 @@ function defaultFetcher() {
   return JSON.parse(stdout);
 }
 
-const STATES = {
-  prd: ['needs-triage', 'in-backlog'],
-  task: [
-    'human-ready',
-    'human-in-progress',
-    'ai-ready',
-    'ai-in-progress',
-    'in-code-review',
-  ],
-};
+const PRD_STATES = ['needs-triage', 'in-backlog'];
+
+const TASK_STATES = [
+  'ai-ready',
+  'ai-in-progress',
+  'human-ready',
+  'human-in-progress',
+  'in-code-review',
+];
 
 const IN_FLIGHT_STATES = ['ai-in-progress', 'human-in-progress', 'in-code-review'];
-
-const PARENT_PRD_RE = /## Parent PRD[^#]*?#(\d+)/;
 
 function hasLabel(issue, name) {
   return issue.labels.some((l) => l.name === name);
 }
 
-function parentPrdAnnotation(issue) {
-  const body = issue.body || '';
-  const m = body.match(PARENT_PRD_RE);
-  return m ? `[PRD #${m[1]}]` : '[no PRD]';
+// Returns every `#N` integer mentioned in free prose, in input order. Shared
+// across the parent-PRD lookup, the blocker-dependency lookup, and the
+// `Created child TASKs:` comment parser — all three answer "what `#N`
+// references appear in this string?". Returns `[]` for empty or null input.
+function parseHashRefs(text) {
+  if (!text) return [];
+  return [...text.matchAll(/#(\d+)/g)].map((m) => Number(m[1]));
+}
+
+// Returns the prose under a `## <heading>` section of an issue body, stopping
+// at the next `## ` heading or end-of-body. Returns `''` when the heading is
+// absent. The heading argument is interpolated into a regex; any regex
+// metacharacters in it are escaped defensively so callers can pass headings
+// like `Blockers / Dependencies` without worrying about the `/`.
+function extractBodySection(body, heading) {
+  if (!body) return '';
+  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('## ' + escaped + '([\\s\\S]*?)(?=\\n## |$)');
+  const m = body.match(re);
+  return m ? m[1] : '';
+}
+
+// Returns the parent PRD number declared in the issue body's `## Parent PRD`
+// section, or `null` when the section is missing or contains no `#N`.
+function parentPrdNumber(issue) {
+  const refs = parseHashRefs(extractBodySection(issue.body, 'Parent PRD'));
+  return refs.length > 0 ? refs[0] : null;
+}
+
+// Returns every `#N` blocker number declared in the issue body's
+// `## Blockers / Dependencies` section, in input order. Returns `[]` when the
+// section is missing or contains no `#N` references.
+function blockerNumbers(issue) {
+  return parseHashRefs(extractBodySection(issue.body, 'Blockers / Dependencies'));
+}
+
+// Returns the first TASK state label found on the issue, in TASK_STATES
+// priority order, or `null` when no TASK state label is present.
+function taskState(issue) {
+  return TASK_STATES.find((s) => hasLabel(issue, s)) || null;
+}
+
+// Builds the dependency graph over the open-issues input.
+//
+// `byNumber` is a Map from issue number to the issue object (covers every
+// issue in the input, PRDs and TASKs alike).
+//
+// `liveBlockers` is a Map from a TASK's number to an array of its LIVE
+// blocker numbers, in input order. A blocker is "live" when the referenced
+// `#N` resolves to an open issue that is not labeled `cancelled`:
+// - Closed targets (not in `byNumber`) → silently ignored.
+// - Open targets labeled `cancelled` → silently ignored (treated as closed).
+// - Unresolvable `#N` (same as closed) → silently ignored.
+// - Open PRD target → live blocker.
+// - Open TASK target → live blocker.
+//
+// Only TASKs (issues with the `task` label) get an entry in `liveBlockers`.
+// TASKs with no live blockers map to an empty array.
+function buildDependencyGraph(issues) {
+  const byNumber = new Map(issues.map((i) => [i.number, i]));
+  const liveBlockers = new Map();
+
+  for (const issue of issues) {
+    if (!hasLabel(issue, 'task')) continue;
+    const live = [];
+    for (const ref of blockerNumbers(issue)) {
+      const target = byNumber.get(ref);
+      if (!target) continue;
+      if (hasLabel(target, 'cancelled')) continue;
+      live.push(ref);
+    }
+    liveBlockers.set(issue.number, live);
+  }
+
+  return { byNumber, liveBlockers };
 }
 
 // Renders a "by state" section: a header followed by, for each state that has
@@ -83,20 +151,13 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
 
   output += renderByStateSection({
     header: 'PRDs by state',
-    states: STATES.prd,
+    states: PRD_STATES,
     matchesFor: (state) =>
       issues.filter((i) => hasLabel(i, 'prd') && hasLabel(i, state)),
     formatLine: (i) => `  #${i.number} ${i.title}`,
   });
 
-  output += renderByStateSection({
-    header: 'TASKs by state',
-    states: STATES.task,
-    matchesFor: (state) =>
-      issues.filter((i) => hasLabel(i, 'task') && hasLabel(i, state)),
-    formatLine: (i) =>
-      `  #${i.number} ${i.title} ${parentPrdAnnotation(i)}`,
-  });
+  output += renderTasksByParentPrdSection(issues);
 
   output += renderBlockedSection(issues);
 
@@ -129,10 +190,9 @@ function renderPrdsReadyToCloseSection(issues) {
     );
     if (!comment) continue;
 
-    const matches = comment.body.match(/#(\d+)/g);
-    if (!matches || matches.length === 0) continue;
+    const childNumbers = parseHashRefs(comment.body);
+    if (childNumbers.length === 0) continue;
 
-    const childNumbers = matches.map((m) => Number(m.slice(1)));
     const allClosed = childNumbers.every((n) => !openNumbers.has(n));
     if (!allClosed) continue;
 
@@ -182,6 +242,98 @@ function renderBlockedSection(issues) {
       ? blocked.map((i) => `  #${i.number} ${i.title}\n`).join('')
       : '(none)\n';
   return `=== Blocked ===\n\n${body}\n`;
+}
+
+// Renders the TASKs-by-parent-PRD section: groups every open TASK with a
+// parent PRD present in the input by that PRD, and emits one ASCII
+// dependency subtree per PRD (sorted by ascending PRD number). Each subtree
+// is headed by `--- PRD #N: title ---` and laid out using `├── `, `└── `,
+// `│   `, and `    ` indentation, with per-node format `#N [state] title`.
+//
+// A TASK's parent in the tree is its first live in-PRD blocker; TASKs with
+// no in-PRD blocker are roots. Children are rendered in input order, which
+// makes the snapshot deterministic.
+//
+// Section is omitted entirely when no parented TASK survives the grouping.
+// Orphan TASKs (no `## Parent PRD`) and TASKs whose parent PRD is not in the
+// input are silently dropped at this stage — both will be addressed in
+// follow-up SUBTASKs (orphans, cross-PRD edges, diamonds, cycles).
+function renderTasksByParentPrdSection(issues) {
+  const { byNumber, liveBlockers } = buildDependencyGraph(issues);
+
+  const tasksByPrd = new Map();
+  for (const issue of issues) {
+    if (!hasLabel(issue, 'task')) continue;
+    const prdNumber = parentPrdNumber(issue);
+    if (prdNumber === null) continue;
+    if (!byNumber.has(prdNumber)) continue;
+    if (!tasksByPrd.has(prdNumber)) tasksByPrd.set(prdNumber, []);
+    tasksByPrd.get(prdNumber).push(issue);
+  }
+
+  if (tasksByPrd.size === 0) return '';
+
+  let out = '=== TASKs by parent PRD ===\n\n';
+
+  const sortedPrdNumbers = [...tasksByPrd.keys()].sort((a, b) => a - b);
+  for (const prdNumber of sortedPrdNumbers) {
+    const prd = byNumber.get(prdNumber);
+    const prdTasks = tasksByPrd.get(prdNumber);
+    out += `--- PRD #${prdNumber}: ${prd.title} ---\n`;
+    out += renderPrdSubtree(prdTasks, liveBlockers);
+    out += '\n';
+  }
+
+  return out;
+}
+
+// Builds the child-list structure for one PRD's TASKs and renders it as
+// ASCII tree lines. Each TASK's parent is its first live blocker that is
+// also in this PRD's task set; TASKs with no in-PRD live blocker are roots.
+// Children are appended in input order so the snapshot is deterministic.
+function renderPrdSubtree(prdTasks, liveBlockers) {
+  const prdTaskNumbers = new Set(prdTasks.map((t) => t.number));
+  const childrenOf = new Map(prdTasks.map((t) => [t.number, []]));
+  const roots = [];
+
+  for (const task of prdTasks) {
+    const blockers = liveBlockers.get(task.number) || [];
+    const inPrdParent = blockers.find((b) => prdTaskNumbers.has(b));
+    if (inPrdParent === undefined) {
+      roots.push(task);
+    } else {
+      childrenOf.get(inPrdParent).push(task);
+    }
+  }
+
+  let out = '';
+  roots.forEach((root, i) => {
+    out += renderTreeNode(root, childrenOf, '', i === roots.length - 1);
+  });
+  return out;
+}
+
+// Renders a single tree node (and recursively its children) as one or more
+// lines. `prefix` is the indentation accumulated from ancestors; `isLast`
+// controls whether this node uses `└── ` (last child) or `├── ` (sibling
+// follows), and whether the continuation prefix for its children uses 4
+// spaces (last) or `│   ` (sibling follows).
+function renderTreeNode(task, childrenOf, prefix, isLast) {
+  const connector = isLast ? '└── ' : '├── ';
+  const state = taskState(task) || 'no-state';
+  let out = `${prefix}${connector}#${task.number} [${state}] ${task.title}\n`;
+
+  const children = childrenOf.get(task.number) || [];
+  const childPrefix = prefix + (isLast ? '    ' : '│   ');
+  children.forEach((child, i) => {
+    out += renderTreeNode(
+      child,
+      childrenOf,
+      childPrefix,
+      i === children.length - 1,
+    );
+  });
+  return out;
 }
 
 module.exports = { runDashboard };
