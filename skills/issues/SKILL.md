@@ -10,7 +10,7 @@ allowed-tools:
   - Bash(gh issue list:*)
   - Bash(gh label list:*)
   - Bash(gh label create:*)
-  - Bash(bash *skills/issues/scripts/status-dashboard.sh:*)
+  - Bash(node *skills/issues/scripts/status-dashboard.js:*)
 ---
 
 Manage GitHub issues for the software factory. You are the authoritative interface between the factory and GitHub — you understand what every label means, what transitions are valid, and what state each issue should be in.
@@ -143,7 +143,7 @@ Check whether all TASKs under a PRD are closed, and close the PRD if so:
 3. If any TASK is still open: do nothing.
 
 ### status-dashboard
-Show the current factory state by running [scripts/status-dashboard.sh](scripts/status-dashboard.sh).
+Show the current factory state by running [scripts/status-dashboard.js](scripts/status-dashboard.js).
 
 Present the script's stdout to the user verbatim inside a fenced code block. Do not summarize, omit issue titles, drop sections, or reformat per-issue lines.
 
