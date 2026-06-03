@@ -28,12 +28,19 @@ function defaultFetcher() {
 
 const PRD_STATES = ['needs-triage', 'in-backlog'];
 
+// In-flight states come FIRST so that, in defensive multi-label cases (a TASK
+// accidentally carrying both an in-flight and a ready label), `taskState` —
+// which returns the first match — resolves to the in-flight state. This keeps
+// the `Currently in flight` pin's per-line label and the `TASKs by parent PRD`
+// tree's per-node label agreeing on the same state for the same TASK. In
+// well-formed data (single state label per TASK) the order is observationally
+// inert.
 const TASK_STATES = [
-  'ai-ready',
   'ai-in-progress',
-  'human-ready',
   'human-in-progress',
   'in-code-review',
+  'ai-ready',
+  'human-ready',
 ];
 
 const IN_FLIGHT_STATES = ['ai-in-progress', 'human-in-progress', 'in-code-review'];
@@ -99,6 +106,14 @@ function taskState(issue) {
 // state falls back to `no-state`, matching the previous tree behaviour. The
 // `Blocked` section intentionally does NOT use this helper — it lists blocked
 // issues without state annotation.
+//
+// The `'no-state'` fallback is reachable only from `renderTreeNode` — the
+// tree section iterates ALL parented/orphan TASKs regardless of whether they
+// carry a state label, so a TASK with no state label still needs a printable
+// bracket. It is NOT reachable from `renderCurrentlyInFlightSection`, which
+// filters upstream to TASKs that carry at least one in-flight state label
+// (so `taskState` always resolves to a real state for those callers). The
+// asymmetry is intentional defensive scaffolding for the tree path.
 function taskNodeLabel(issue) {
   const state = taskState(issue) || 'no-state';
   return hasLabel(issue, 'blocked') ? `${state}, blocked` : state;
@@ -242,12 +257,21 @@ function renderPrdsReadyToCloseSection(issues) {
 // `  #<number> [<label>] <title>` line per TASK whose labels include any of
 // the three in-flight states (input order preserved) or a single `(none)`
 // line when no TASK is in flight. A trailing blank line always closes the
-// section. The bracket label is composed by `taskNodeLabel` — the TASK's
-// state, plus `, blocked` when the cross-cutting `blocked` label is also
-// present (consistent with the tree's per-node format).
+// section. The bracket label is produced by `taskNodeLabel(issue)` — the
+// TASK's state, plus `, blocked` when the cross-cutting `blocked` label is
+// also present (consistent with the tree's per-node format).
+//
+// In well-formed data every in-flight TASK carries exactly one state label,
+// so the per-node label resolution is unambiguous and the `TASK_STATES`
+// priority order is observationally inert. For the defensive multi-label
+// case (a TASK accidentally carrying more than one state label) the
+// resolution rule is `TASK_STATES` priority order — and because in-flight
+// states are listed first in `TASK_STATES`, an in-flight label wins over a
+// concurrent ready label, matching what users would expect from a TASK that
+// is visibly here in the in-flight pin.
 function renderCurrentlyInFlightSection(issues) {
-  const inFlight = issues.filter((i) =>
-    IN_FLIGHT_STATES.some((s) => hasLabel(i, s)),
+  const inFlight = issues.filter(
+    (i) => hasLabel(i, 'task') && IN_FLIGHT_STATES.some((s) => hasLabel(i, s)),
   );
   const body =
     inFlight.length > 0
