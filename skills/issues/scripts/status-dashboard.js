@@ -167,6 +167,11 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
   const { byNumber, liveBlockers } = buildDependencyGraph(issues);
   const cycles = detectCycles(liveBlockers);
   const cycleNodes = new Set(cycles.flat());
+  const subtreeOf = buildSubtreeOf(issues, byNumber, cycleNodes);
+  // `graph` bundles the cross-cutting graph context used by the dependency-tree
+  // renderers. Built once here and passed down by reference; consumers must
+  // treat it as immutable (read-only).
+  const graph = { byNumber, liveBlockers, subtreeOf, cycleNodes };
 
   let output = '';
 
@@ -180,11 +185,7 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
     formatLine: (i) => `  #${i.number} ${i.title}`,
   });
 
-  output += renderTasksByParentPrdSection(issues, {
-    byNumber,
-    liveBlockers,
-    cycleNodes,
-  });
+  output += renderTasksByParentPrdSection(issues, graph);
 
   output += renderCyclesDetectedSection(cycles);
 
@@ -380,7 +381,8 @@ function renderCyclesDetectedSection(cycles) {
 // Section is omitted entirely when there are no open TASKs at all (after
 // excluding cycle participants). The Unparented subtree is itself omitted
 // when there are no orphans.
-function renderTasksByParentPrdSection(issues, { byNumber, liveBlockers, cycleNodes }) {
+function renderTasksByParentPrdSection(issues, graph) {
+  const { byNumber, cycleNodes } = graph;
   const tasks = issues.filter(
     (i) => hasLabel(i, 'task') && !cycleNodes.has(i.number),
   );
@@ -388,16 +390,13 @@ function renderTasksByParentPrdSection(issues, { byNumber, liveBlockers, cycleNo
 
   const tasksByPrd = new Map();
   const orphans = [];
-  const subtreeOf = new Map();
   for (const task of tasks) {
     const prdNumber = parentPrdNumber(task);
     if (prdNumber !== null && byNumber.has(prdNumber)) {
       if (!tasksByPrd.has(prdNumber)) tasksByPrd.set(prdNumber, []);
       tasksByPrd.get(prdNumber).push(task);
-      subtreeOf.set(task.number, prdNumber);
     } else {
       orphans.push(task);
-      subtreeOf.set(task.number, null);
     }
   }
 
@@ -407,28 +406,54 @@ function renderTasksByParentPrdSection(issues, { byNumber, liveBlockers, cycleNo
   for (const prdNumber of sortedPrdNumbers) {
     const prd = byNumber.get(prdNumber);
     const prdTasks = tasksByPrd.get(prdNumber);
-    out += renderSubtree(
-      `--- PRD #${prdNumber}: ${prd.title} ---`,
-      prdTasks,
-      liveBlockers,
-      byNumber,
-      subtreeOf,
-      cycleNodes,
-    );
+    out += renderSubtree(`--- PRD #${prdNumber}: ${prd.title} ---`, prdTasks, graph);
   }
 
   if (orphans.length > 0) {
-    out += renderSubtree(
-      '--- Unparented TASKs ---',
-      orphans,
-      liveBlockers,
-      byNumber,
-      subtreeOf,
-      cycleNodes,
-    );
+    out += renderSubtree('--- Unparented TASKs ---', orphans, graph);
   }
 
   return out;
+}
+
+// Builds the `subtreeOf` map: for every non-cycle open TASK, records its
+// containing subtree as either a PRD number (when the task declares a parent
+// PRD that exists in the input) or `null` (orphan — no `## Parent PRD` body
+// section, or parent not in the input). Cycle participants are excluded from
+// the map because `renderTasksByParentPrdSection` excludes them from the tree
+// entirely; nothing downstream looks them up. Pure: no I/O, no mutation of
+// inputs.
+function buildSubtreeOf(issues, byNumber, cycleNodes) {
+  const subtreeOf = new Map();
+  for (const issue of issues) {
+    if (!hasLabel(issue, 'task')) continue;
+    if (cycleNodes.has(issue.number)) continue;
+    const prdNumber = parentPrdNumber(issue);
+    const containing =
+      prdNumber !== null && byNumber.has(prdNumber) ? prdNumber : null;
+    subtreeOf.set(issue.number, containing);
+  }
+  return subtreeOf;
+}
+
+// Splits a task's blocker list into two mutually exclusive buckets keyed by
+// `taskNumbers` membership, walking the blocker list exactly once. Pure: no
+// I/O, no mutation of inputs. Bucket order is input order — callers that need
+// a specific sort apply it themselves (e.g. `sortedInSubtreeBlockers` sorts
+// `inSubtree` ascending; `crossSubtreeAnnotation` does its own further
+// filtering + sort on `crossSubtree`). Centralises the `taskNumbers.has(b)`
+// decision so the two consumers cannot drift in semantics.
+function partitionBlockers(blockers, taskNumbers) {
+  const inSubtree = [];
+  const crossSubtree = [];
+  for (const b of blockers) {
+    if (taskNumbers.has(b)) {
+      inSubtree.push(b);
+    } else {
+      crossSubtree.push(b);
+    }
+  }
+  return { inSubtree, crossSubtree };
 }
 
 // Returns the in-subtree blocker numbers for a task, sorted ascending. A
@@ -437,8 +462,8 @@ function renderTasksByParentPrdSection(issues, { byNumber, liveBlockers, cycleNo
 // filtered out here. Sorting ascending is what makes the diamond placement
 // (lowest-numbered parent) and the annotation order (ascending) deterministic
 // regardless of the order blockers appear in the issue body.
-function sortedInSubtreeBlockers(blockers, taskNumbers) {
-  return blockers.filter((b) => taskNumbers.has(b)).sort((a, b) => a - b);
+function sortedInSubtreeBlockers(inSubtree) {
+  return [...inSubtree].sort((a, b) => a - b);
 }
 
 // Returns the `(also blocked by #M[, #L]...)` annotation suffix (with leading
@@ -455,18 +480,18 @@ function otherBlockersAnnotation(sortedBlockers) {
 // composed of one ` (blocked by #M under PRD #X)` (or
 // ` (blocked by #M, unparented)` when the blocker is itself an orphan) phrase
 // per cross-subtree TASK blocker, listed in ascending blocker number. The
-// `taskNumbers` set identifies the dependent's own subtree's TASKs (so the
-// in-subtree blockers can be filtered out). PRD blockers are filtered out —
-// only TASK-to-TASK cross-subtree edges are surfaced. Cycle-member blockers
-// are also filtered out: a cycle participant is broken and is treated like a
-// closed/cancelled blocker (silently dropped), so non-cycle TASKs that depend
-// on a cycle member do not surface a stale `(blocked by #M under PRD #X)`
-// edge — they appear with no cycle-related annotation. Returns `''` when the
-// task has no cross-subtree TASK blockers.
-function crossSubtreeAnnotation(blockers, taskNumbers, byNumber, subtreeOf, cycleNodes) {
-  const cross = blockers
+// `crossSubtree` list (from `partitionBlockers`) contains blockers that are
+// NOT in the dependent's own subtree's task set. PRD blockers are filtered out
+// here — only TASK-to-TASK cross-subtree edges are surfaced. Cycle-member
+// blockers are also filtered out: a cycle participant is broken and is treated
+// like a closed/cancelled blocker (silently dropped), so non-cycle TASKs that
+// depend on a cycle member do not surface a stale `(blocked by #M under
+// PRD #X)` edge — they appear with no cycle-related annotation. Returns `''`
+// when the task has no cross-subtree TASK blockers.
+function crossSubtreeAnnotation(crossSubtree, graph) {
+  const { byNumber, subtreeOf, cycleNodes } = graph;
+  const cross = crossSubtree
     .filter((b) => {
-      if (taskNumbers.has(b)) return false;
       if (cycleNodes.has(b)) return false;
       const target = byNumber.get(b);
       return target !== undefined && hasLabel(target, 'task');
@@ -496,7 +521,8 @@ function crossSubtreeAnnotation(blockers, taskNumbers, byNumber, subtreeOf, cycl
 // annotation. Children are appended in input order so the snapshot is
 // deterministic. Used for both per-PRD subtrees and the `Unparented TASKs`
 // subtree.
-function renderSubtree(header, tasks, liveBlockers, byNumber, subtreeOf, cycleNodes) {
+function renderSubtree(header, tasks, graph) {
+  const { liveBlockers } = graph;
   const taskNumbers = new Set(tasks.map((t) => t.number));
   const childrenOf = new Map(tasks.map((t) => [t.number, []]));
   const annotationOf = new Map();
@@ -504,15 +530,15 @@ function renderSubtree(header, tasks, liveBlockers, byNumber, subtreeOf, cycleNo
 
   for (const task of tasks) {
     const blockers = liveBlockers.get(task.number) || [];
-    const sorted = sortedInSubtreeBlockers(blockers, taskNumbers);
+    const { inSubtree, crossSubtree } = partitionBlockers(blockers, taskNumbers);
+    const sorted = sortedInSubtreeBlockers(inSubtree);
     if (sorted.length === 0) {
       roots.push(task);
     } else {
       childrenOf.get(sorted[0]).push(task);
     }
     const annotation =
-      otherBlockersAnnotation(sorted) +
-      crossSubtreeAnnotation(blockers, taskNumbers, byNumber, subtreeOf, cycleNodes);
+      otherBlockersAnnotation(sorted) + crossSubtreeAnnotation(crossSubtree, graph);
     if (annotation !== '') annotationOf.set(task.number, annotation);
   }
 
