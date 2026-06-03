@@ -244,34 +244,41 @@ function renderBlockedSection(issues) {
   return `=== Blocked ===\n\n${body}\n`;
 }
 
-// Renders the TASKs-by-parent-PRD section: groups every open TASK with a
-// parent PRD present in the input by that PRD, and emits one ASCII
-// dependency subtree per PRD (sorted by ascending PRD number). Each subtree
-// is headed by `--- PRD #N: title ---` and laid out using `├── `, `└── `,
+// Renders the TASKs-by-parent-PRD section: groups every open TASK by its
+// parent PRD (when present in the input) or as an "orphan" (no
+// `## Parent PRD`, or parent not in the input), and emits one ASCII
+// dependency subtree per PRD (sorted by ascending PRD number) followed by a
+// dedicated `--- Unparented TASKs ---` subtree containing the orphans (when
+// any). Each subtree is headed by `--- PRD #N: title ---` (or
+// `--- Unparented TASKs ---` for orphans) and laid out using `├── `, `└── `,
 // `│   `, and `    ` indentation, with per-node format `#N [state] title`.
 //
-// A TASK's parent in the tree is its first live in-PRD blocker; TASKs with
-// no in-PRD blocker are roots. Children are rendered in input order, which
-// makes the snapshot deterministic.
+// A TASK's parent in the tree is its first live blocker that is also in the
+// same subtree's task set; TASKs with no in-subtree blocker are roots.
+// Children are rendered in input order, which makes the snapshot
+// deterministic. Cross-subtree blocker edges (orphan blocked by parented
+// TASK, or vice-versa) are silently dropped at this stage — they will be
+// addressed in a follow-up SUBTASK.
 //
-// Section is omitted entirely when no parented TASK survives the grouping.
-// Orphan TASKs (no `## Parent PRD`) and TASKs whose parent PRD is not in the
-// input are silently dropped at this stage — both will be addressed in
-// follow-up SUBTASKs (orphans, cross-PRD edges, diamonds, cycles).
+// Section is omitted entirely when there are no open TASKs at all. The
+// Unparented subtree is itself omitted when there are no orphans.
 function renderTasksByParentPrdSection(issues) {
   const { byNumber, liveBlockers } = buildDependencyGraph(issues);
 
-  const tasksByPrd = new Map();
-  for (const issue of issues) {
-    if (!hasLabel(issue, 'task')) continue;
-    const prdNumber = parentPrdNumber(issue);
-    if (prdNumber === null) continue;
-    if (!byNumber.has(prdNumber)) continue;
-    if (!tasksByPrd.has(prdNumber)) tasksByPrd.set(prdNumber, []);
-    tasksByPrd.get(prdNumber).push(issue);
-  }
+  const tasks = issues.filter((i) => hasLabel(i, 'task'));
+  if (tasks.length === 0) return '';
 
-  if (tasksByPrd.size === 0) return '';
+  const tasksByPrd = new Map();
+  const orphans = [];
+  for (const task of tasks) {
+    const prdNumber = parentPrdNumber(task);
+    if (prdNumber !== null && byNumber.has(prdNumber)) {
+      if (!tasksByPrd.has(prdNumber)) tasksByPrd.set(prdNumber, []);
+      tasksByPrd.get(prdNumber).push(task);
+    } else {
+      orphans.push(task);
+    }
+  }
 
   let out = '=== TASKs by parent PRD ===\n\n';
 
@@ -279,37 +286,42 @@ function renderTasksByParentPrdSection(issues) {
   for (const prdNumber of sortedPrdNumbers) {
     const prd = byNumber.get(prdNumber);
     const prdTasks = tasksByPrd.get(prdNumber);
-    out += `--- PRD #${prdNumber}: ${prd.title} ---\n`;
-    out += renderPrdSubtree(prdTasks, liveBlockers);
-    out += '\n';
+    out += renderSubtree(`--- PRD #${prdNumber}: ${prd.title} ---`, prdTasks, liveBlockers);
+  }
+
+  if (orphans.length > 0) {
+    out += renderSubtree('--- Unparented TASKs ---', orphans, liveBlockers);
   }
 
   return out;
 }
 
-// Builds the child-list structure for one PRD's TASKs and renders it as
-// ASCII tree lines. Each TASK's parent is its first live blocker that is
-// also in this PRD's task set; TASKs with no in-PRD live blocker are roots.
-// Children are appended in input order so the snapshot is deterministic.
-function renderPrdSubtree(prdTasks, liveBlockers) {
-  const prdTaskNumbers = new Set(prdTasks.map((t) => t.number));
-  const childrenOf = new Map(prdTasks.map((t) => [t.number, []]));
+// Renders one subtree block: a header line, an ASCII dependency tree over
+// the given task set, and a trailing blank line. Each task's parent is its
+// first live blocker that is also in this subtree's task set; tasks with no
+// in-subtree blocker are roots. Children are appended in input order so the
+// snapshot is deterministic. Used for both per-PRD subtrees and the
+// `Unparented TASKs` subtree.
+function renderSubtree(header, tasks, liveBlockers) {
+  const taskNumbers = new Set(tasks.map((t) => t.number));
+  const childrenOf = new Map(tasks.map((t) => [t.number, []]));
   const roots = [];
 
-  for (const task of prdTasks) {
+  for (const task of tasks) {
     const blockers = liveBlockers.get(task.number) || [];
-    const inPrdParent = blockers.find((b) => prdTaskNumbers.has(b));
-    if (inPrdParent === undefined) {
+    const inSubtreeParent = blockers.find((b) => taskNumbers.has(b));
+    if (inSubtreeParent === undefined) {
       roots.push(task);
     } else {
-      childrenOf.get(inPrdParent).push(task);
+      childrenOf.get(inSubtreeParent).push(task);
     }
   }
 
-  let out = '';
+  let out = `${header}\n`;
   roots.forEach((root, i) => {
     out += renderTreeNode(root, childrenOf, '', i === roots.length - 1);
   });
+  out += '\n';
   return out;
 }
 
