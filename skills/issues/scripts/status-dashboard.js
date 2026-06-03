@@ -55,11 +55,18 @@ function parseHashRefs(text) {
 // at the next `## ` heading or end-of-body. Returns `''` when the heading is
 // absent. The heading argument is interpolated into a regex; any regex
 // metacharacters in it are escaped defensively so callers can pass headings
-// like `Blockers / Dependencies` without worrying about the `/`.
+// like `Blockers / Dependencies` without worrying about the `/`. The heading
+// match is anchored at a line boundary (start-of-body or immediately after a
+// `\n`) so that inline occurrences inside backticked code spans — e.g. a
+// bullet that mentions `` `## Parent PRD` `` literally — are NOT mistaken for
+// a real section heading.
 function extractBodySection(body, heading) {
   if (!body) return '';
   const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp('## ' + escaped + '([\\s\\S]*?)(?=\\n## |$)');
+  // `(?:^|\n)` anchors the heading at a line boundary; this rejects inline
+  // occurrences like `` `## Parent PRD` `` embedded in prose. The group is
+  // non-capturing so `m[1]` still yields the section body.
+  const re = new RegExp('(?:^|\\n)## ' + escaped + '([\\s\\S]*?)(?=\\n## |$)');
   const m = body.match(re);
   return m ? m[1] : '';
 }
