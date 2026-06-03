@@ -161,6 +161,8 @@ Check whether all TASKs under a PRD are closed, and close the PRD if so:
 ### status-dashboard
 Show the current factory state by running [scripts/status-dashboard.sh](scripts/status-dashboard.sh).
 
+Present the script's stdout to the user verbatim inside a fenced code block. Do not summarize, omit issue titles, drop sections, or reformat per-issue lines.
+
 ## Shared templates
 
 This skill owns the canonical issue body templates. To apply them:
