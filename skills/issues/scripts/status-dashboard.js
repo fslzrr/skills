@@ -271,9 +271,12 @@ function renderBlockedSection(issues) {
 // roots. Diamonds (multi-blocked TASKs) appear exactly once with the other
 // in-subtree blockers surfaced via an `(also blocked by ...)` annotation.
 // Children are rendered in input order, which makes the snapshot
-// deterministic. Cross-subtree blocker edges (orphan blocked by parented
-// TASK, or vice-versa) are silently dropped at this stage — they will be
-// addressed in a follow-up SUBTASK.
+// deterministic. Cross-subtree blocker edges (one TASK blocked by another
+// TASK in a different subtree — parented-vs-parented, or parented-vs-orphan)
+// contribute no tree edge; instead they are surfaced via a per-node
+// `(blocked by #M under PRD #X)` annotation (or `(blocked by #M, unparented)`
+// when the blocker itself is an orphan). PRD blockers are not surfaced in
+// the tree.
 //
 // Section is omitted entirely when there are no open TASKs at all. The
 // Unparented subtree is itself omitted when there are no orphans.
@@ -285,13 +288,16 @@ function renderTasksByParentPrdSection(issues) {
 
   const tasksByPrd = new Map();
   const orphans = [];
+  const subtreeOf = new Map();
   for (const task of tasks) {
     const prdNumber = parentPrdNumber(task);
     if (prdNumber !== null && byNumber.has(prdNumber)) {
       if (!tasksByPrd.has(prdNumber)) tasksByPrd.set(prdNumber, []);
       tasksByPrd.get(prdNumber).push(task);
+      subtreeOf.set(task.number, prdNumber);
     } else {
       orphans.push(task);
+      subtreeOf.set(task.number, null);
     }
   }
 
@@ -301,11 +307,23 @@ function renderTasksByParentPrdSection(issues) {
   for (const prdNumber of sortedPrdNumbers) {
     const prd = byNumber.get(prdNumber);
     const prdTasks = tasksByPrd.get(prdNumber);
-    out += renderSubtree(`--- PRD #${prdNumber}: ${prd.title} ---`, prdTasks, liveBlockers);
+    out += renderSubtree(
+      `--- PRD #${prdNumber}: ${prd.title} ---`,
+      prdTasks,
+      liveBlockers,
+      byNumber,
+      subtreeOf,
+    );
   }
 
   if (orphans.length > 0) {
-    out += renderSubtree('--- Unparented TASKs ---', orphans, liveBlockers);
+    out += renderSubtree(
+      '--- Unparented TASKs ---',
+      orphans,
+      liveBlockers,
+      byNumber,
+      subtreeOf,
+    );
   }
 
   return out;
@@ -331,32 +349,63 @@ function otherBlockersAnnotation(sortedBlockers) {
   return ` (also blocked by ${others.map((n) => `#${n}`).join(', ')})`;
 }
 
+// Returns the cross-subtree annotation suffix (with leading space) for a task,
+// composed of one ` (blocked by #M under PRD #X)` (or
+// ` (blocked by #M, unparented)` when the blocker is itself an orphan) phrase
+// per cross-subtree TASK blocker, listed in ascending blocker number. The
+// `taskNumbers` set identifies the dependent's own subtree's TASKs (so the
+// in-subtree blockers can be filtered out). PRD blockers are filtered out —
+// only TASK-to-TASK cross-subtree edges are surfaced. Returns `''` when the
+// task has no cross-subtree TASK blockers.
+function crossSubtreeAnnotation(blockers, taskNumbers, byNumber, subtreeOf) {
+  const cross = blockers
+    .filter((b) => {
+      if (taskNumbers.has(b)) return false;
+      const target = byNumber.get(b);
+      return target !== undefined && hasLabel(target, 'task');
+    })
+    .sort((a, b) => a - b);
+  return cross
+    .map((b) => {
+      const prdNumber = subtreeOf.get(b);
+      return prdNumber === null
+        ? ` (blocked by #${b}, unparented)`
+        : ` (blocked by #${b} under PRD #${prdNumber})`;
+    })
+    .join('');
+}
+
 // Renders one subtree block: a header line, an ASCII dependency tree over
 // the given task set, and a trailing blank line. A task with at least one
 // in-subtree blocker is placed under its LOWEST-numbered in-subtree blocker
 // (so a "diamond" — a task with multiple in-subtree blockers — appears
 // exactly once in the tree); any other in-subtree blockers are surfaced via
 // an `(also blocked by #M[, #L]...)` annotation appended to the task's line.
-// Tasks with no in-subtree blocker are roots. Children are appended in input
-// order so the snapshot is deterministic. Used for both per-PRD subtrees and
-// the `Unparented TASKs` subtree.
-function renderSubtree(header, tasks, liveBlockers) {
+// Tasks with no in-subtree blocker are roots. Cross-subtree TASK blockers
+// (one TASK blocked by another TASK in a different subtree) contribute no
+// tree edge here — they are surfaced via a per-node
+// `(blocked by #M under PRD #X)` (or `(blocked by #M, unparented)`)
+// annotation appended AFTER any same-subtree `(also blocked by ...)`
+// annotation. Children are appended in input order so the snapshot is
+// deterministic. Used for both per-PRD subtrees and the `Unparented TASKs`
+// subtree.
+function renderSubtree(header, tasks, liveBlockers, byNumber, subtreeOf) {
   const taskNumbers = new Set(tasks.map((t) => t.number));
   const childrenOf = new Map(tasks.map((t) => [t.number, []]));
   const annotationOf = new Map();
   const roots = [];
 
   for (const task of tasks) {
-    const sorted = sortedInSubtreeBlockers(
-      liveBlockers.get(task.number) || [],
-      taskNumbers,
-    );
+    const blockers = liveBlockers.get(task.number) || [];
+    const sorted = sortedInSubtreeBlockers(blockers, taskNumbers);
     if (sorted.length === 0) {
       roots.push(task);
-      continue;
+    } else {
+      childrenOf.get(sorted[0]).push(task);
     }
-    childrenOf.get(sorted[0]).push(task);
-    const annotation = otherBlockersAnnotation(sorted);
+    const annotation =
+      otherBlockersAnnotation(sorted) +
+      crossSubtreeAnnotation(blockers, taskNumbers, byNumber, subtreeOf);
     if (annotation !== '') annotationOf.set(task.number, annotation);
   }
 
