@@ -1,6 +1,6 @@
 ---
 name: issues
-description: "Manages GitHub issues for the software factory — creates, reads, updates, and lists PRD and TASK issues; transitions states via labels; shows a status dashboard; and recovers missing labels on demand during write operations. TRIGGER when: user says 'show status', 'list issues', `what's in progress`, 'update issue #N', 'mark as blocked', 'create an issue', 'close this issue', or any other GitHub issue management request."
+description: "Manages GitHub issues for the software factory — creates, reads, updates, and lists PRD and TASK issues; transitions states via labels; shows a status dashboard; and recovers missing labels on demand during write operations. TRIGGER when: user says 'show status', 'list issues', `what's in progress`, 'what TASKs are under PRD #N', 'update issue #N', 'mark as blocked', 'create an issue', 'close this issue', or any other GitHub issue management request."
 allowed-tools:
   - Bash(gh issue create:*)
   - Bash(gh issue view:*)
@@ -134,26 +134,6 @@ Unblock an issue:
 ```bash
 gh issue edit <number> --remove-label "blocked"
 gh issue comment <number> --body "Unblocked: <reason>"
-```
-
-### list-issues
-List and filter issues. Examples:
-```bash
-# All open PRDs
-gh issue list --label "prd" --state open
-
-# TASKs needing attention
-gh issue list --label "task,human-ready" --state open
-gh issue list --label "task,human-in-progress" --state open
-gh issue list --label "task,ai-ready" --state open
-gh issue list --label "task,ai-in-progress" --state open
-gh issue list --label "task,in-code-review" --state open
-
-# Blocked issues
-gh issue list --label "blocked" --state open
-
-# TASKs under a specific PRD (search by parent reference in body)
-gh issue list --label "task" --search "Parent PRD #<number>"
 ```
 
 ### check-prd-completion
