@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # Fetch all open issues in a single call
-issues=$(gh issue list --state open --json number,title,labels,comments --limit 200)
+issues=$(gh issue list --state open --json number,title,labels,comments,body --limit 200)
 
 # PRD state labels (ordered by typical workflow progression)
 prd_states=(needs-triage in-backlog in-progress)
@@ -45,12 +45,20 @@ echo ""
 
 for state in "${task_states[@]}"; do
   matches=$(echo "$issues" | jq -r --arg state "$state" '
+    # capture() emits empty (not an error) when the regex does not match in
+    # jq 1.7.1. The postfix ? handles the error path, and // null folds the
+    # empty-output path; together they collapse both no-match cases into a
+    # single null value that the downstream if can handle.
+    def parent_prd:
+      (.body // "") as $b |
+      ($b | capture("## Parent PRD[^#]*?#(?<n>[0-9]+)")? // null) as $m |
+      if $m == null then "[no PRD]" else "[PRD #\($m.n)]" end;
     .[] |
     select(
       (.labels | map(.name) | contains(["task"])) and
       (.labels | map(.name) | contains([$state]))
     ) |
-    "  #\(.number) \(.title)"
+    "  #\(.number) \(.title) \(parent_prd)"
   ')
   if [[ -n "$matches" ]]; then
     echo "${state}:"
