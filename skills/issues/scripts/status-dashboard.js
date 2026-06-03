@@ -26,14 +26,16 @@ function defaultFetcher() {
   return JSON.parse(stdout);
 }
 
-const PRD_STATES = ['needs-triage', 'in-backlog', 'in-progress'];
-const TASK_STATES = [
-  'human-ready',
-  'human-in-progress',
-  'ai-ready',
-  'ai-in-progress',
-  'in-code-review',
-];
+const STATES = {
+  prd: ['needs-triage', 'in-backlog', 'in-progress'],
+  task: [
+    'human-ready',
+    'human-in-progress',
+    'ai-ready',
+    'ai-in-progress',
+    'in-code-review',
+  ],
+};
 
 const PARENT_PRD_RE = /## Parent PRD[^#]*?#(\d+)/;
 
@@ -49,9 +51,13 @@ function parentPrdAnnotation(issue) {
 
 // Renders a "by state" section: a header followed by, for each state that has
 // any matching issue, a `state:` line, one formatted line per match, and a
-// trailing blank line. States with no matches are silently skipped. No
-// additional trailing newline is appended after the last state block — the
-// per-state trailing `\n` is the only separator.
+// trailing blank line. States with no matches are silently skipped.
+//
+// Cross-section spacing contract: this function emits only the per-state
+// trailing `\n` — no extra footer after the last block. The next section's
+// header begins with `=== ... ===\n\n`, so the visible blank line between
+// sections is the previous section's trailing `\n` plus the next header's
+// own blank. Adding an extra `\n` here would double-space adjacent sections.
 function renderByStateSection({ header, states, matchesFor, formatLine }) {
   let out = `=== ${header} ===\n\n`;
   for (const state of states) {
@@ -73,7 +79,7 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
 
   output += renderByStateSection({
     header: 'PRDs by state',
-    states: PRD_STATES,
+    states: STATES.prd,
     matchesFor: (state) =>
       issues.filter((i) => hasLabel(i, 'prd') && hasLabel(i, state)),
     formatLine: (i) => `  #${i.number} ${i.title}`,
@@ -81,7 +87,7 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
 
   output += renderByStateSection({
     header: 'TASKs by state',
-    states: TASK_STATES,
+    states: STATES.task,
     matchesFor: (state) =>
       issues.filter((i) => hasLabel(i, 'task') && hasLabel(i, state)),
     formatLine: (i) =>
@@ -144,17 +150,12 @@ function renderPrdsReadyToCloseSection(issues) {
 // blank line always closes the section. The `blocked` filter is intentionally
 // kind-agnostic — both PRDs and TASKs can be blocked simultaneously.
 function renderBlockedSection(issues) {
-  let out = '=== Blocked ===\n\n';
   const blocked = issues.filter((i) => hasLabel(i, 'blocked'));
-  if (blocked.length > 0) {
-    for (const i of blocked) {
-      out += `  #${i.number} ${i.title}\n`;
-    }
-  } else {
-    out += '(none)\n';
-  }
-  out += '\n';
-  return out;
+  const body =
+    blocked.length > 0
+      ? blocked.map((i) => `  #${i.number} ${i.title}\n`).join('')
+      : '(none)\n';
+  return `=== Blocked ===\n\n${body}\n`;
 }
 
 module.exports = { runDashboard };
