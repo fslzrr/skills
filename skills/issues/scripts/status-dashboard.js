@@ -88,10 +88,28 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
       `  #${i.number} ${i.title} ${parentPrdAnnotation(i)}`,
   });
 
-  // Blocked (full implementation deferred to a later SUBTASK)
-  output += '=== Blocked ===\n\n(none)\n\n';
+  output += renderBlockedSection(issues);
 
   return output;
+}
+
+// Renders the Blocked section: a header followed by either one indented
+// `  #<number> <title>` line per blocked issue (input order preserved) or a
+// single `(none)` line when no issue carries the `blocked` label. A trailing
+// blank line always closes the section. The `blocked` filter is intentionally
+// kind-agnostic — both PRDs and TASKs can be blocked simultaneously.
+function renderBlockedSection(issues) {
+  let out = '=== Blocked ===\n\n';
+  const blocked = issues.filter((i) => hasLabel(i, 'blocked'));
+  if (blocked.length > 0) {
+    for (const i of blocked) {
+      out += `  #${i.number} ${i.title}\n`;
+    }
+  } else {
+    out += '(none)\n';
+  }
+  out += '\n';
+  return out;
 }
 
 module.exports = { runDashboard, defaultFetcher };
