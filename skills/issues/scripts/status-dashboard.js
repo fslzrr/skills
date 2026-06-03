@@ -37,6 +37,8 @@ const STATES = {
   ],
 };
 
+const IN_FLIGHT_STATES = ['ai-in-progress', 'human-in-progress', 'in-code-review'];
+
 const PARENT_PRD_RE = /## Parent PRD[^#]*?#(\d+)/;
 
 function hasLabel(issue, name) {
@@ -76,6 +78,8 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
   const issues = fetcher();
 
   let output = '';
+
+  output += renderCurrentlyInFlightSection(issues);
 
   output += renderByStateSection({
     header: 'PRDs by state',
@@ -142,6 +146,28 @@ function renderPrdsReadyToCloseSection(issues) {
   }
 
   return out;
+}
+
+// Renders the Currently in flight section: a header followed by either one
+// `  #<number> [<state>] <title>` line per TASK whose labels include any of
+// the three in-flight states (input order preserved) or a single `(none)`
+// line when no TASK is in flight. A trailing blank line always closes the
+// section. When a TASK carries multiple in-flight labels (shouldn't happen
+// but defensive), the first match in IN_FLIGHT_STATES priority order wins.
+function renderCurrentlyInFlightSection(issues) {
+  const inFlight = issues.filter((i) =>
+    IN_FLIGHT_STATES.some((s) => hasLabel(i, s)),
+  );
+  const body =
+    inFlight.length > 0
+      ? inFlight
+          .map((i) => {
+            const state = IN_FLIGHT_STATES.find((s) => hasLabel(i, s));
+            return `  #${i.number} [${state}] ${i.title}\n`;
+          })
+          .join('')
+      : '(none)\n';
+  return `=== Currently in flight ===\n\n${body}\n`;
 }
 
 // Renders the Blocked section: a header followed by either one indented
