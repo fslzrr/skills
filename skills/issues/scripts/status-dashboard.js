@@ -62,17 +62,15 @@ function parseHashRefs(text) {
 // at the next `## ` heading or end-of-body. Returns `''` when the heading is
 // absent. The heading argument is interpolated into a regex; any regex
 // metacharacters in it are escaped defensively so callers can pass headings
-// like `Blockers / Dependencies` without worrying about the `/`. The heading
-// match is anchored at a line boundary (start-of-body or immediately after a
-// `\n`) so that inline occurrences inside backticked code spans — e.g. a
-// bullet that mentions `` `## Parent PRD` `` literally — are NOT mistaken for
-// a real section heading.
+// like `Blockers / Dependencies` without worrying about the `/`. See the
+// inline note below for the line-boundary anchoring detail.
 function extractBodySection(body, heading) {
   if (!body) return '';
   const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  // `(?:^|\n)` anchors the heading at a line boundary; this rejects inline
-  // occurrences like `` `## Parent PRD` `` embedded in prose. The group is
-  // non-capturing so `m[1]` still yields the section body.
+  // `(?:^|\n)` anchors the heading at a line boundary (start-of-body or
+  // immediately after a `\n`); this rejects inline occurrences like
+  // `` `## Parent PRD` `` embedded in prose. The group is non-capturing so
+  // `m[1]` still yields the section body.
   const re = new RegExp('(?:^|\\n)## ' + escaped + '([\\s\\S]*?)(?=\\n## |$)');
   const m = body.match(re);
   return m ? m[1] : '';
@@ -184,9 +182,10 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
   const cycleNodes = new Set(cycles.flat());
   const subtreeOf = buildSubtreeOf(issues, byNumber, cycleNodes);
   // `graph` bundles the cross-cutting graph context used by the dependency-tree
-  // renderers. Built once here and passed down by reference; consumers must
-  // treat it as immutable (read-only).
-  const graph = { byNumber, liveBlockers, subtreeOf, cycleNodes };
+  // renderers. Built once here and passed down by reference; `Object.freeze`
+  // makes the read-only contract a runtime invariant (strict-mode mutation
+  // attempts throw `TypeError`).
+  const graph = Object.freeze({ byNumber, liveBlockers, subtreeOf, cycleNodes });
 
   let output = '';
 
@@ -406,21 +405,25 @@ function renderCyclesDetectedSection(cycles) {
 // excluding cycle participants). The Unparented subtree is itself omitted
 // when there are no orphans.
 function renderTasksByParentPrdSection(issues, graph) {
-  const { byNumber, cycleNodes } = graph;
+  const { byNumber, subtreeOf, cycleNodes } = graph;
   const tasks = issues.filter(
     (i) => hasLabel(i, 'task') && !cycleNodes.has(i.number),
   );
   if (tasks.length === 0) return '';
 
+  // Bucketing consults `subtreeOf` directly so the parented-vs-orphan
+  // predicate lives in exactly one place (`buildSubtreeOf`). Every task in
+  // `tasks` has an entry in `subtreeOf` by construction: both are derived
+  // from the same `hasLabel(i, 'task') && !cycleNodes.has(i.number)` filter.
   const tasksByPrd = new Map();
   const orphans = [];
   for (const task of tasks) {
-    const prdNumber = parentPrdNumber(task);
-    if (prdNumber !== null && byNumber.has(prdNumber)) {
+    const prdNumber = subtreeOf.get(task.number);
+    if (prdNumber === null) {
+      orphans.push(task);
+    } else {
       if (!tasksByPrd.has(prdNumber)) tasksByPrd.set(prdNumber, []);
       tasksByPrd.get(prdNumber).push(task);
-    } else {
-      orphans.push(task);
     }
   }
 
@@ -480,12 +483,11 @@ function partitionBlockers(blockers, taskNumbers) {
   return { inSubtree, crossSubtree };
 }
 
-// Returns the in-subtree blocker numbers for a task, sorted ascending. A
-// blocker is "in subtree" when it resolves to another task in the same
-// subtree's task set; cross-subtree blocker edges (handled elsewhere) are
-// filtered out here. Sorting ascending is what makes the diamond placement
-// (lowest-numbered parent) and the annotation order (ascending) deterministic
-// regardless of the order blockers appear in the issue body.
+// Sorts the already-partitioned in-subtree blockers ascending; this ordering
+// is what makes the diamond-placement (lowest-numbered parent) and the
+// annotation-order (ascending) steps deterministic, regardless of the order
+// the blockers appear in the issue body. The cross-subtree partitioning is
+// done upstream by `partitionBlockers`.
 function sortedInSubtreeBlockers(inSubtree) {
   return [...inSubtree].sort((a, b) => a - b);
 }
