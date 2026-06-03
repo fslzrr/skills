@@ -90,7 +90,52 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
 
   output += renderBlockedSection(issues);
 
+  output += renderPrdsReadyToCloseSection(issues);
+
   return output;
+}
+
+// Renders the PRDs-ready-to-close section: for each in-progress PRD whose
+// "Created child TASKs:" comment lists only TASK numbers that are no longer
+// present in the open-issues input (i.e. all closed), emits a qualifying
+// block. The header is printed once, before the first qualifier; if no PRD
+// qualifies the section is omitted entirely (no header, no trailing blank
+// line). PRDs missing the comment, or with a comment containing no `#N`
+// references, are silently skipped.
+function renderPrdsReadyToCloseSection(issues) {
+  const inProgressPrds = issues.filter(
+    (i) => hasLabel(i, 'prd') && hasLabel(i, 'in-progress'),
+  );
+  if (inProgressPrds.length === 0) return '';
+
+  const openNumbers = new Set(issues.map((i) => i.number));
+
+  let out = '';
+  let headerPrinted = false;
+
+  for (const prd of inProgressPrds) {
+    const comment = (prd.comments || []).find((c) =>
+      c.body.startsWith('Created child TASKs:'),
+    );
+    if (!comment) continue;
+
+    const matches = comment.body.match(/#(\d+)/g);
+    if (!matches || matches.length === 0) continue;
+
+    const childNumbers = matches.map((m) => Number(m.slice(1)));
+    const allClosed = childNumbers.every((n) => !openNumbers.has(n));
+    if (!allClosed) continue;
+
+    if (!headerPrinted) {
+      out += '=== PRDs ready to close ===\n\n';
+      headerPrinted = true;
+    }
+    out += `  #${prd.number} ${prd.title}\n`;
+    out += '    ✓ all TASKs closed — ready to close\n';
+    out += '\n';
+  }
+
+  return out;
 }
 
 // Renders the Blocked section: a header followed by either one indented
@@ -112,7 +157,7 @@ function renderBlockedSection(issues) {
   return out;
 }
 
-module.exports = { runDashboard, defaultFetcher };
+module.exports = { runDashboard };
 
 if (require.main === module) {
   process.stdout.write(runDashboard());
