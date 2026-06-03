@@ -57,6 +57,10 @@ Apply this procedure **only** when a write operation (`create-prd`, `create-prd-
 4. Retry the original operation **once**.
 5. If the retry also fails, surface the error as-is and stop. Do not retry again.
 
+## Default action
+
+When invoked with no arguments, or with arguments that do not clearly map to a specific procedure, run `status-dashboard` without an explanatory preamble.
+
 ## Procedures
 
 ### create-prd
