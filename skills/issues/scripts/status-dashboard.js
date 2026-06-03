@@ -27,7 +27,7 @@ function defaultFetcher() {
 }
 
 const STATES = {
-  prd: ['needs-triage', 'in-backlog', 'in-progress'],
+  prd: ['needs-triage', 'in-backlog'],
   task: [
     'human-ready',
     'human-in-progress',
