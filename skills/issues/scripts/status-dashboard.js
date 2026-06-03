@@ -84,6 +84,19 @@ function taskState(issue) {
   return TASK_STATES.find((s) => hasLabel(issue, s)) || null;
 }
 
+// Returns the per-node bracket label used inside `[...]` when rendering a TASK
+// as `#N [<label>] <title>` in the `Currently in flight` pin and the
+// `TASKs by parent PRD` tree. Composes the TASK's state with the cross-cutting
+// `blocked` label: a `blocked`-labeled TASK appends `, blocked` after its
+// state (e.g. `ai-ready, blocked`). When no TASK state label is present the
+// state falls back to `no-state`, matching the previous tree behaviour. The
+// `Blocked` section intentionally does NOT use this helper — it lists blocked
+// issues without state annotation.
+function taskNodeLabel(issue) {
+  const state = taskState(issue) || 'no-state';
+  return hasLabel(issue, 'blocked') ? `${state}, blocked` : state;
+}
+
 // Builds the dependency graph over the open-issues input.
 //
 // `byNumber` is a Map from issue number to the issue object (covers every
@@ -209,11 +222,12 @@ function renderPrdsReadyToCloseSection(issues) {
 }
 
 // Renders the Currently in flight section: a header followed by either one
-// `  #<number> [<state>] <title>` line per TASK whose labels include any of
+// `  #<number> [<label>] <title>` line per TASK whose labels include any of
 // the three in-flight states (input order preserved) or a single `(none)`
 // line when no TASK is in flight. A trailing blank line always closes the
-// section. When a TASK carries multiple in-flight labels (shouldn't happen
-// but defensive), the first match in IN_FLIGHT_STATES priority order wins.
+// section. The bracket label is composed by `taskNodeLabel` — the TASK's
+// state, plus `, blocked` when the cross-cutting `blocked` label is also
+// present (consistent with the tree's per-node format).
 function renderCurrentlyInFlightSection(issues) {
   const inFlight = issues.filter((i) =>
     IN_FLIGHT_STATES.some((s) => hasLabel(i, s)),
@@ -221,10 +235,7 @@ function renderCurrentlyInFlightSection(issues) {
   const body =
     inFlight.length > 0
       ? inFlight
-          .map((i) => {
-            const state = IN_FLIGHT_STATES.find((s) => hasLabel(i, s));
-            return `  #${i.number} [${state}] ${i.title}\n`;
-          })
+          .map((i) => `  #${i.number} [${taskNodeLabel(i)}] ${i.title}\n`)
           .join('')
       : '(none)\n';
   return `=== Currently in flight ===\n\n${body}\n`;
@@ -251,7 +262,9 @@ function renderBlockedSection(issues) {
 // dedicated `--- Unparented TASKs ---` subtree containing the orphans (when
 // any). Each subtree is headed by `--- PRD #N: title ---` (or
 // `--- Unparented TASKs ---` for orphans) and laid out using `├── `, `└── `,
-// `│   `, and `    ` indentation, with per-node format `#N [state] title`.
+// `│   `, and `    ` indentation, with per-node format
+// `#N [<label>] title` where `<label>` is the state, optionally suffixed by
+// `, blocked` when the cross-cutting `blocked` label is present.
 //
 // A TASK's parent in the tree is its first live blocker that is also in the
 // same subtree's task set; TASKs with no in-subtree blocker are roots.
@@ -332,8 +345,7 @@ function renderSubtree(header, tasks, liveBlockers) {
 // spaces (last) or `│   ` (sibling follows).
 function renderTreeNode(task, childrenOf, prefix, isLast) {
   const connector = isLast ? '└── ' : '├── ';
-  const state = taskState(task) || 'no-state';
-  let out = `${prefix}${connector}#${task.number} [${state}] ${task.title}\n`;
+  let out = `${prefix}${connector}#${task.number} [${taskNodeLabel(task)}] ${task.title}\n`;
 
   const children = childrenOf.get(task.number) || [];
   const childPrefix = prefix + (isLast ? '    ' : '│   ');
