@@ -1,12 +1,11 @@
 'use strict';
 
-// R1 fixture: an in-flight TASK must win over any ready TASK.
+// R1 fixture: an in-flight TASK must win over any ready TASK, and the
+// lowest-numbered in-flight TASK wins among multiple.
 // - #10 PRD in-backlog (would otherwise qualify for R4)
-// - #20 TASK ai-in-progress under PRD #10 (R1 winner)
+// - #20 TASK ai-in-progress under PRD #10 (R1 winner — lowest in-flight)
 // - #21 TASK ai-ready under PRD #10 (R2 candidate; should NOT win)
-// - #22 TASK human-in-progress under PRD #10 (lowest-number tie-breaker)
-//        — wait, #20 is lower; #22 is here only to show multiple in-flight.
-// Lowest issue number among in-flight wins → #20.
+// - #22 TASK human-in-progress under PRD #10 (second in-flight; tie-break excludes it)
 
 module.exports = [
   {

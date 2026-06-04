@@ -207,11 +207,13 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
 
   output += renderPrdsReadyToCloseSection(issues);
 
-  // Trailing one-line suggestion. Each preceding section already ends with
-  // a `\n\n` pair (the section's per-row `\n` plus a blank-line `\n`), so
-  // the blank line above the suggestion is provided "for free" by the last
-  // section's trailer — no leading `\n` is needed here. The sentence
-  // itself ends in a single `\n`.
+  // Trailing one-line suggestion. The last NON-EMPTY preceding section
+  // ends in `\n\n` (its per-row `\n` plus a blank-line `\n`) — so the
+  // blank line above the suggestion is provided "for free" and no leading
+  // `\n` is needed here. `renderBlockedSection` always emits, which keeps
+  // the invariant intact even when `renderCyclesDetectedSection` /
+  // `renderPrdsReadyToCloseSection` return `''`. The sentence itself
+  // ends in a single `\n`.
   output += renderSuggestionSentence(suggestNext(issues, graph));
 
   return output;

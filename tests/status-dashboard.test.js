@@ -69,6 +69,14 @@ test('R2 does not consider TASKs with live blockers; falls through to R4', () =>
   assert.equal(result.meta.state, 'in-backlog');
 });
 
+test('R2 tie-break by lowest issue number when no ready TASK has downstream', () => {
+  const result = run('./fixtures/suggester-r2-tie-break.js');
+  assert.equal(result.rule, 'R2');
+  assert.equal(result.candidate.number, 400);
+  assert.equal(result.meta.parentPrd, 200);
+  assert.equal(result.meta.downstreamCount, 0);
+});
+
 test('R3 picks the ready TASK that transitively unblocks the most downstream TASKs', () => {
   const result = run('./fixtures/suggester-r3-most-unblocks.js');
   assert.equal(result.rule, 'R3');
