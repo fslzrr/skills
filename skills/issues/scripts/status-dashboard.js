@@ -175,17 +175,25 @@ function renderByStateSection({ header, states, matchesFor, formatLine }) {
   return out;
 }
 
-function runDashboard({ fetcher = defaultFetcher } = {}) {
-  const issues = fetcher();
+// Bundles the cross-cutting graph context the dashboard renderers and the
+// `suggestNext` cascade all need: issue lookup, live-blocker adjacency,
+// per-TASK subtree containment, and the set of cycle participants. `cycles`
+// is the raw output of `detectCycles` (an array of cycle arrays) because the
+// `Cycles detected` section renders them directly; everything else consumes
+// the derived `cycleNodes` set. Frozen so callers cannot mutate the shared
+// context — strict-mode mutation attempts throw `TypeError`.
+function buildGraph(issues) {
   const { byNumber, liveBlockers } = buildDependencyGraph(issues);
   const cycles = detectCycles(liveBlockers);
   const cycleNodes = new Set(cycles.flat());
   const subtreeOf = buildSubtreeOf(issues, byNumber, cycleNodes);
-  // `graph` bundles the cross-cutting graph context used by the dependency-tree
-  // renderers. Built once here and passed down by reference; `Object.freeze`
-  // makes the read-only contract a runtime invariant (strict-mode mutation
-  // attempts throw `TypeError`).
-  const graph = Object.freeze({ byNumber, liveBlockers, subtreeOf, cycleNodes });
+  return Object.freeze({ byNumber, liveBlockers, subtreeOf, cycleNodes, cycles });
+}
+
+function runDashboard({ fetcher = defaultFetcher } = {}) {
+  const issues = fetcher();
+  const graph = buildGraph(issues);
+  const { cycles } = graph;
 
   let output = '';
 
@@ -206,6 +214,15 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
   output += renderBlockedSection(issues);
 
   output += renderPrdsReadyToCloseSection(issues);
+
+  // Trailing one-line suggestion. The last NON-EMPTY preceding section
+  // ends in `\n\n` (its per-row `\n` plus a blank-line `\n`) — so the
+  // blank line above the suggestion is provided "for free" and no leading
+  // `\n` is needed here. `renderBlockedSection` always emits, which keeps
+  // the invariant intact even when `renderCyclesDetectedSection` /
+  // `renderPrdsReadyToCloseSection` return `''`. The sentence itself
+  // ends in a single `\n`.
+  output += renderSuggestionSentence(suggestNext(issues, graph));
 
   return output;
 }
@@ -600,7 +617,210 @@ function renderTreeNode(task, childrenOf, annotationOf, prefix, isLast) {
   return out;
 }
 
-module.exports = { runDashboard };
+// Inverts the dependency graph: for each TASK `Y` with `b` in
+// `liveBlockers.get(Y)`, records edge `b → Y` so callers can answer
+// "what depends on `b`?" in one map lookup. Built once per R3 ranking
+// pass and shared across all candidate counts.
+function buildReverseDependencyGraph(liveBlockers) {
+  const reverse = new Map();
+  for (const [dependent, blockers] of liveBlockers) {
+    for (const b of blockers) {
+      if (!reverse.has(b)) reverse.set(b, []);
+      reverse.get(b).push(dependent);
+    }
+  }
+  return reverse;
+}
+
+// Counts the distinct open TASKs whose live-blocker chain transitively
+// includes `taskNumber` — i.e. how many downstream TASKs the given TASK
+// would unblock if it were completed. The visited set both keeps the
+// walk O(V+E) and defends against any residual cycle the upstream
+// cycle filter may have missed.
+function countDownstreamTasks(taskNumber, reverseGraph) {
+  const visited = new Set();
+  const stack = [taskNumber];
+  while (stack.length > 0) {
+    const cur = stack.pop();
+    for (const next of reverseGraph.get(cur) || []) {
+      if (visited.has(next)) continue;
+      visited.add(next);
+      stack.push(next);
+    }
+  }
+  return visited.size;
+}
+
+// Pure suggester: applies the R1 → R2 → R3 → R4 cascade and returns a
+// structured suggestion the renderer can format without recomputing
+// graph facts. Returns `{ rule: null, candidate: null, meta: null }`
+// when no rule matches.
+//
+// Cascade summary (first match wins):
+// - R1: any in-flight TASK (lowest issue number among them).
+// - R2: prefer a ready TASK (task + ai-ready/human-ready, no live
+//       blockers, not `blocked`-labeled) over any PRD. R3 picks the
+//       single ready TASK among R2's candidates.
+// - R3: within ready TASKs, the one whose completion unblocks the most
+//       downstream open TASKs (transitive). Lowest issue number breaks
+//       ties.
+// - R4: when no ready TASK exists, the lowest-numbered PRD in the
+//       highest-priority candidate state (`in-backlog` over
+//       `needs-triage`).
+// In-flight TASKs win regardless of any other label (including `blocked`).
+// Lowest issue number among in-flight is the resume target. Returns `null`
+// when no TASK is in flight so the cascade can fall through to R2/R3.
+function applyR1(issues) {
+  const inFlight = issues
+    .filter(
+      (i) => hasLabel(i, 'task') && IN_FLIGHT_STATES.some((s) => hasLabel(i, s)),
+    )
+    .sort((a, b) => a.number - b.number);
+  if (inFlight.length === 0) return null;
+  const candidate = inFlight[0];
+  return { rule: 'R1', candidate, meta: { state: taskState(candidate) } };
+}
+
+// A ready TASK requires the `task` label, a ready state label, the absence
+// of `blocked`, and zero live blockers. Within qualifying candidates R3's
+// leverage metric (transitive downstream count) ranks ties; the rule tag
+// distinguishes the "ready TASK over PRD" framing (R2, zero leverage) from
+// the "unblocks N downstream" framing (R3, non-zero leverage). The
+// renderer uses the tag to pick its message; the candidate is the same
+// either way. Returns `null` when no ready TASK qualifies.
+function applyR2R3(issues, graph) {
+  const { liveBlockers, subtreeOf } = graph;
+  const readyTasks = issues.filter(
+    (i) =>
+      hasLabel(i, 'task') &&
+      !hasLabel(i, 'blocked') &&
+      (hasLabel(i, 'ai-ready') || hasLabel(i, 'human-ready')) &&
+      (liveBlockers.get(i.number) || []).length === 0,
+  );
+  if (readyTasks.length === 0) return null;
+  const reverseGraph = buildReverseDependencyGraph(liveBlockers);
+  const ranked = readyTasks
+    .map((task) => ({
+      task,
+      downstreamCount: countDownstreamTasks(task.number, reverseGraph),
+    }))
+    .sort((a, b) => {
+      if (b.downstreamCount !== a.downstreamCount) {
+        return b.downstreamCount - a.downstreamCount;
+      }
+      return a.task.number - b.task.number;
+    });
+  const winner = ranked[0];
+  return {
+    rule: winner.downstreamCount > 0 ? 'R3' : 'R2',
+    candidate: winner.task,
+    meta: {
+      parentPrd: subtreeOf.get(winner.task.number),
+      downstreamCount: winner.downstreamCount,
+    },
+  };
+}
+
+// Fall back to triage/decompose work on PRDs. `in-backlog` outranks
+// `needs-triage`; within a state, lowest issue number wins. Returns `null`
+// when no PRD qualifies, leaving the cascade to emit the empty state.
+function applyR4(issues) {
+  for (const state of ['in-backlog', 'needs-triage']) {
+    const matches = issues
+      .filter((i) => hasLabel(i, 'prd') && hasLabel(i, state))
+      .sort((a, b) => a.number - b.number);
+    if (matches.length > 0) {
+      return { rule: 'R4', candidate: matches[0], meta: { state } };
+    }
+  }
+  return null;
+}
+
+// Cascade dispatch: each rule helper returns either a suggestion object or
+// `null` to fall through to the next rule. `null` from all four means the
+// empty state — every PRD is in flight and every TASK is blocked or in
+// progress.
+function suggestNext(issues, graph) {
+  return (
+    applyR1(issues) ||
+    applyR2R3(issues, graph) ||
+    applyR4(issues) || { rule: null, candidate: null, meta: null }
+  );
+}
+
+// Formats the trailing one-line suggestion sentence. Takes the
+// `suggestNext` return value and returns the line plus its terminating
+// `\n`. When `suggestion.rule` is `null` (the empty state — no R1/R2/R3/R4
+// candidate), returns the fixed `No actionable work …` fallback.
+//
+// Action token (the bit before `#N`): a slash command when the work is
+// dispatchable to an automated agent, omitted otherwise.
+//   - R1 ai-in-progress → /implement   (resume the AI implementer)
+//   - R1 in-code-review / human-in-progress → no command (human action)
+//   - R2/R3 ai-ready → /implement
+//   - R2/R3 human-ready → no command (handoff to a human, ref alone)
+//   - R4 in-backlog → /decompose
+//   - R4 needs-triage → /interview
+//
+// Rationale (the bit after `— `): explains why the candidate is the
+// suggested next action.
+//   - R1 ai-in-progress / human-in-progress → resume
+//   - R1 in-code-review → check review on
+//   - R2/R3 downstreamCount > 0, parentPrd !== null →
+//       `root of PRD #X, unblocks N downstream TASKs`
+//   - R2/R3 downstreamCount > 0, parentPrd === null →
+//       `unblocks N downstream TASKs` (the root-of-PRD clause is omitted
+//       when the TASK has no parent PRD in the input)
+//   - R2/R3 downstreamCount === 0 → `unblocks 0 downstream TASKs`
+//   - R4 in-backlog → `ready for /decompose`
+//   - R4 needs-triage → `ready for /interview`
+function renderSuggestionSentence(suggestion) {
+  if (suggestion.rule === null) {
+    return 'No actionable work — every PRD is in flight and every TASK is blocked or in progress.\n';
+  }
+  const { rule, candidate, meta } = suggestion;
+  const ref = `#${candidate.number}`;
+  const action = suggestionActionToken(rule, candidate, meta);
+  const lead = action === '' ? ref : `${action} ${ref}`;
+  const rationale = suggestionRationale(rule, meta);
+  return `Suggested next: ${lead} — ${rationale}\n`;
+}
+
+// Returns the slash-command token (e.g. `/implement`) or `''` when the
+// suggestion's action is the bare `#N` reference (human-driven work).
+function suggestionActionToken(rule, candidate, meta) {
+  if (rule === 'R1') {
+    return meta.state === 'ai-in-progress' ? '/implement' : '';
+  }
+  if (rule === 'R2' || rule === 'R3') {
+    return hasLabel(candidate, 'ai-ready') ? '/implement' : '';
+  }
+  // R4
+  return meta.state === 'in-backlog' ? '/decompose' : '/interview';
+}
+
+// Returns the rationale clause that follows `— ` in the trailing sentence.
+function suggestionRationale(rule, meta) {
+  if (rule === 'R1') {
+    return meta.state === 'in-code-review' ? 'check review on' : 'resume';
+  }
+  if (rule === 'R2' || rule === 'R3') {
+    const tail = `unblocks ${meta.downstreamCount} downstream TASKs`;
+    if (meta.downstreamCount > 0 && meta.parentPrd !== null) {
+      return `root of PRD #${meta.parentPrd}, ${tail}`;
+    }
+    return tail;
+  }
+  // R4
+  return meta.state === 'in-backlog' ? 'ready for /decompose' : 'ready for /interview';
+}
+
+module.exports = {
+  runDashboard,
+  suggestNext,
+  renderSuggestionSentence,
+  buildGraph,
+};
 
 if (require.main === module) {
   process.stdout.write(runDashboard());
