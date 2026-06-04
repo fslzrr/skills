@@ -10,23 +10,10 @@ const assert = require('node:assert/strict');
 
 const {
   suggestNext,
-  buildDependencyGraph,
-  detectCycles,
-  buildSubtreeOf,
+  buildGraph,
   runDashboard,
   renderSuggestionSentence,
 } = require('../skills/issues/scripts/status-dashboard.js');
-
-// Mirrors the `graph` construction inside `runDashboard` so tests
-// exercise `suggestNext` with the exact same context the production
-// caller will pass.
-function buildGraph(issues) {
-  const { byNumber, liveBlockers } = buildDependencyGraph(issues);
-  const cycles = detectCycles(liveBlockers);
-  const cycleNodes = new Set(cycles.flat());
-  const subtreeOf = buildSubtreeOf(issues, byNumber, cycleNodes);
-  return { byNumber, liveBlockers, subtreeOf, cycleNodes };
-}
 
 function run(fixturePath) {
   const issues = require(fixturePath);

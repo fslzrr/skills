@@ -175,17 +175,25 @@ function renderByStateSection({ header, states, matchesFor, formatLine }) {
   return out;
 }
 
-function runDashboard({ fetcher = defaultFetcher } = {}) {
-  const issues = fetcher();
+// Bundles the cross-cutting graph context the dashboard renderers and the
+// `suggestNext` cascade all need: issue lookup, live-blocker adjacency,
+// per-TASK subtree containment, and the set of cycle participants. `cycles`
+// is the raw output of `detectCycles` (an array of cycle arrays) because the
+// `Cycles detected` section renders them directly; everything else consumes
+// the derived `cycleNodes` set. Frozen so callers cannot mutate the shared
+// context — strict-mode mutation attempts throw `TypeError`.
+function buildGraph(issues) {
   const { byNumber, liveBlockers } = buildDependencyGraph(issues);
   const cycles = detectCycles(liveBlockers);
   const cycleNodes = new Set(cycles.flat());
   const subtreeOf = buildSubtreeOf(issues, byNumber, cycleNodes);
-  // `graph` bundles the cross-cutting graph context used by the dependency-tree
-  // renderers. Built once here and passed down by reference; `Object.freeze`
-  // makes the read-only contract a runtime invariant (strict-mode mutation
-  // attempts throw `TypeError`).
-  const graph = Object.freeze({ byNumber, liveBlockers, subtreeOf, cycleNodes });
+  return Object.freeze({ byNumber, liveBlockers, subtreeOf, cycleNodes, cycles });
+}
+
+function runDashboard({ fetcher = defaultFetcher } = {}) {
+  const issues = fetcher();
+  const graph = buildGraph(issues);
+  const { cycles } = graph;
 
   let output = '';
 
@@ -659,28 +667,29 @@ function countDownstreamTasks(taskNumber, reverseGraph) {
 // - R4: when no ready TASK exists, the lowest-numbered PRD in the
 //       highest-priority candidate state (`in-backlog` over
 //       `needs-triage`).
-function suggestNext(issues, graph) {
-  const { liveBlockers, subtreeOf } = graph;
-
-  // R1: in-flight TASKs win regardless of any other label (including
-  // `blocked`). Lowest issue number among in-flight is the resume target.
+// In-flight TASKs win regardless of any other label (including `blocked`).
+// Lowest issue number among in-flight is the resume target. Returns `null`
+// when no TASK is in flight so the cascade can fall through to R2/R3.
+function applyR1(issues) {
   const inFlight = issues
     .filter(
       (i) => hasLabel(i, 'task') && IN_FLIGHT_STATES.some((s) => hasLabel(i, s)),
     )
     .sort((a, b) => a.number - b.number);
-  if (inFlight.length > 0) {
-    const candidate = inFlight[0];
-    return {
-      rule: 'R1',
-      candidate,
-      meta: { state: taskState(candidate) },
-    };
-  }
+  if (inFlight.length === 0) return null;
+  const candidate = inFlight[0];
+  return { rule: 'R1', candidate, meta: { state: taskState(candidate) } };
+}
 
-  // R2/R3: a ready TASK requires task label, a ready state label, the
-  // absence of `blocked`, and zero live blockers. R3's leverage metric
-  // ranks ties between qualifying candidates.
+// A ready TASK requires the `task` label, a ready state label, the absence
+// of `blocked`, and zero live blockers. Within qualifying candidates R3's
+// leverage metric (transitive downstream count) ranks ties; the rule tag
+// distinguishes the "ready TASK over PRD" framing (R2, zero leverage) from
+// the "unblocks N downstream" framing (R3, non-zero leverage). The
+// renderer uses the tag to pick its message; the candidate is the same
+// either way. Returns `null` when no ready TASK qualifies.
+function applyR2R3(issues, graph) {
+  const { liveBlockers, subtreeOf } = graph;
   const readyTasks = issues.filter(
     (i) =>
       hasLabel(i, 'task') &&
@@ -688,54 +697,55 @@ function suggestNext(issues, graph) {
       (hasLabel(i, 'ai-ready') || hasLabel(i, 'human-ready')) &&
       (liveBlockers.get(i.number) || []).length === 0,
   );
-  if (readyTasks.length > 0) {
-    const reverseGraph = buildReverseDependencyGraph(liveBlockers);
-    const ranked = readyTasks
-      .map((task) => ({
-        task,
-        downstreamCount: countDownstreamTasks(task.number, reverseGraph),
-      }))
-      .sort((a, b) => {
-        if (b.downstreamCount !== a.downstreamCount) {
-          return b.downstreamCount - a.downstreamCount;
-        }
-        return a.task.number - b.task.number;
-      });
-    const winner = ranked[0];
-    // Rule attribution: R3 fires whenever leverage actually differentiates
-    // candidates (any non-zero downstream count surfaces R3's
-    // "unblocks N downstream" framing). When every candidate has zero
-    // downstream — i.e. nothing depends on any of them — R2's simpler
-    // "ready TASK over PRD" framing applies. The renderer uses the rule
-    // tag to pick its message; the candidate is the same either way.
-    const rule = winner.downstreamCount > 0 ? 'R3' : 'R2';
-    return {
-      rule,
-      candidate: winner.task,
-      meta: {
-        parentPrd: subtreeOf.get(winner.task.number),
-        downstreamCount: winner.downstreamCount,
-      },
-    };
-  }
+  if (readyTasks.length === 0) return null;
+  const reverseGraph = buildReverseDependencyGraph(liveBlockers);
+  const ranked = readyTasks
+    .map((task) => ({
+      task,
+      downstreamCount: countDownstreamTasks(task.number, reverseGraph),
+    }))
+    .sort((a, b) => {
+      if (b.downstreamCount !== a.downstreamCount) {
+        return b.downstreamCount - a.downstreamCount;
+      }
+      return a.task.number - b.task.number;
+    });
+  const winner = ranked[0];
+  return {
+    rule: winner.downstreamCount > 0 ? 'R3' : 'R2',
+    candidate: winner.task,
+    meta: {
+      parentPrd: subtreeOf.get(winner.task.number),
+      downstreamCount: winner.downstreamCount,
+    },
+  };
+}
 
-  // R4: no ready TASK — fall back to triage/decompose work on PRDs.
-  // `in-backlog` outranks `needs-triage`; within a state, lowest issue
-  // number wins.
+// Fall back to triage/decompose work on PRDs. `in-backlog` outranks
+// `needs-triage`; within a state, lowest issue number wins. Returns `null`
+// when no PRD qualifies, leaving the cascade to emit the empty state.
+function applyR4(issues) {
   for (const state of ['in-backlog', 'needs-triage']) {
     const matches = issues
       .filter((i) => hasLabel(i, 'prd') && hasLabel(i, state))
       .sort((a, b) => a.number - b.number);
     if (matches.length > 0) {
-      return {
-        rule: 'R4',
-        candidate: matches[0],
-        meta: { state },
-      };
+      return { rule: 'R4', candidate: matches[0], meta: { state } };
     }
   }
+  return null;
+}
 
-  return { rule: null, candidate: null, meta: null };
+// Cascade dispatch: each rule helper returns either a suggestion object or
+// `null` to fall through to the next rule. `null` from all four means the
+// empty state — every PRD is in flight and every TASK is blocked or in
+// progress.
+function suggestNext(issues, graph) {
+  return (
+    applyR1(issues) ||
+    applyR2R3(issues, graph) ||
+    applyR4(issues) || { rule: null, candidate: null, meta: null }
+  );
 }
 
 // Formats the trailing one-line suggestion sentence. Takes the
@@ -809,9 +819,7 @@ module.exports = {
   runDashboard,
   suggestNext,
   renderSuggestionSentence,
-  buildDependencyGraph,
-  detectCycles,
-  buildSubtreeOf,
+  buildGraph,
 };
 
 if (require.main === module) {
