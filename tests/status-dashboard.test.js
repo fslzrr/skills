@@ -15,7 +15,7 @@ const {
   buildSubtreeOf,
   runDashboard,
   renderSuggestionSentence,
-} = require('./status-dashboard.js');
+} = require('../skills/issues/scripts/status-dashboard.js');
 
 // Mirrors the `graph` construction inside `runDashboard` so tests
 // exercise `suggestNext` with the exact same context the production
