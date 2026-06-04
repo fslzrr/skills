@@ -207,6 +207,13 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
 
   output += renderPrdsReadyToCloseSection(issues);
 
+  // Trailing one-line suggestion. Each preceding section already ends with
+  // a `\n\n` pair (the section's per-row `\n` plus a blank-line `\n`), so
+  // the blank line above the suggestion is provided "for free" by the last
+  // section's trailer — no leading `\n` is needed here. The sentence
+  // itself ends in a single `\n`.
+  output += renderSuggestionSentence(suggestNext(issues, graph));
+
   return output;
 }
 
@@ -729,9 +736,77 @@ function suggestNext(issues, graph) {
   return { rule: null, candidate: null, meta: null };
 }
 
+// Formats the trailing one-line suggestion sentence. Takes the
+// `suggestNext` return value and returns the line plus its terminating
+// `\n`. When `suggestion.rule` is `null` (the empty state — no R1/R2/R3/R4
+// candidate), returns the fixed `No actionable work …` fallback.
+//
+// Action token (the bit before `#N`): a slash command when the work is
+// dispatchable to an automated agent, omitted otherwise.
+//   - R1 ai-in-progress → /implement   (resume the AI implementer)
+//   - R1 in-code-review / human-in-progress → no command (human action)
+//   - R2/R3 ai-ready → /implement
+//   - R2/R3 human-ready → no command (handoff to a human, ref alone)
+//   - R4 in-backlog → /decompose
+//   - R4 needs-triage → /interview
+//
+// Rationale (the bit after `— `): explains why the candidate is the
+// suggested next action.
+//   - R1 ai-in-progress / human-in-progress → resume
+//   - R1 in-code-review → check review on
+//   - R2/R3 downstreamCount > 0, parentPrd !== null →
+//       `root of PRD #X, unblocks N downstream TASKs`
+//   - R2/R3 downstreamCount > 0, parentPrd === null →
+//       `unblocks N downstream TASKs` (the root-of-PRD clause is omitted
+//       when the TASK has no parent PRD in the input)
+//   - R2/R3 downstreamCount === 0 → `unblocks 0 downstream TASKs`
+//   - R4 in-backlog → `ready for /decompose`
+//   - R4 needs-triage → `ready for /interview`
+function renderSuggestionSentence(suggestion) {
+  if (suggestion.rule === null) {
+    return 'No actionable work — every PRD is in flight and every TASK is blocked or in progress.\n';
+  }
+  const { rule, candidate, meta } = suggestion;
+  const ref = `#${candidate.number}`;
+  const action = suggestionActionToken(rule, candidate, meta);
+  const lead = action === '' ? ref : `${action} ${ref}`;
+  const rationale = suggestionRationale(rule, meta);
+  return `Suggested next: ${lead} — ${rationale}\n`;
+}
+
+// Returns the slash-command token (e.g. `/implement`) or `''` when the
+// suggestion's action is the bare `#N` reference (human-driven work).
+function suggestionActionToken(rule, candidate, meta) {
+  if (rule === 'R1') {
+    return meta.state === 'ai-in-progress' ? '/implement' : '';
+  }
+  if (rule === 'R2' || rule === 'R3') {
+    return hasLabel(candidate, 'ai-ready') ? '/implement' : '';
+  }
+  // R4
+  return meta.state === 'in-backlog' ? '/decompose' : '/interview';
+}
+
+// Returns the rationale clause that follows `— ` in the trailing sentence.
+function suggestionRationale(rule, meta) {
+  if (rule === 'R1') {
+    return meta.state === 'in-code-review' ? 'check review on' : 'resume';
+  }
+  if (rule === 'R2' || rule === 'R3') {
+    const tail = `unblocks ${meta.downstreamCount} downstream TASKs`;
+    if (meta.downstreamCount > 0 && meta.parentPrd !== null) {
+      return `root of PRD #${meta.parentPrd}, ${tail}`;
+    }
+    return tail;
+  }
+  // R4
+  return meta.state === 'in-backlog' ? 'ready for /decompose' : 'ready for /interview';
+}
+
 module.exports = {
   runDashboard,
   suggestNext,
+  renderSuggestionSentence,
   buildDependencyGraph,
   detectCycles,
   buildSubtreeOf,
