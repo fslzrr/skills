@@ -214,13 +214,17 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ### PR and handoff
 
-15. Open the PR:
+15. **Push the branch, then open the PR.** Push the worktree's commits before `gh pr create` (use the exact non-force form declared in `allowed-tools`):
+    ```bash
+    git push -u origin HEAD
+    ```
+    Then open the PR with `gh pr create`:
     - Title: mirror the TASK title exactly
     - Body: include a summary of what was implemented and `closes #<TASK-number>`
 
 16. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
 
-17. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch. The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
+17. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch with `git push -u origin HEAD`. The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
 
 ## Hard rules
 
