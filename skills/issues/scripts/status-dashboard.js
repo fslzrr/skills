@@ -42,23 +42,36 @@ function stripPrefix(line, prefix) {
 // `<name>` after `branch refs/heads/` (the `refs/heads/` prefix stripped), or
 // `null` for a detached HEAD (no `branch` line). Pure: no I/O. Leading/
 // trailing whitespace and a trailing blank line (git emits one) are tolerated
-// by splitting on blank-line boundaries and dropping empty blocks.
+// by splitting on blank-line boundaries and dropping empty blocks. A non-empty
+// block that carries no `worktree <path>` line is also dropped (it is not a
+// real worktree), so the contract is one record per REAL worktree — every
+// returned record has a non-null `path`.
 function parseWorktreePorcelain(stdout) {
   return stdout
     .trim()
     .split(/\n\s*\n/)
     .filter((block) => block.trim() !== '')
     .map((block) => {
-      let path = null;
+      // Local named `worktreePath` rather than the bare `path` so the variable
+      // is self-describing and matches the file's descriptive naming (and would
+      // not collide with a future `require('node:path')` — not imported today).
+      // The RECORD KEY stays `path` — the public contract consumed by
+      // `renderStaleWorktreesSection` and the injected fetcher seam.
+      let worktreePath = null;
       let branch = null;
       for (const line of block.split('\n')) {
         const linePath = stripPrefix(line, 'worktree ');
-        if (linePath !== null) path = linePath;
+        if (linePath !== null) worktreePath = linePath;
         const lineBranch = stripPrefix(line, 'branch refs/heads/');
         if (lineBranch !== null) branch = lineBranch;
       }
-      return { path, branch };
-    });
+      return { path: worktreePath, branch };
+    })
+    // Drop path-less blocks: a non-empty block with no `worktree <path>` line
+    // is not a real worktree (malformed/stray porcelain), so its `path` stays
+    // null. The parser's contract is "one record per REAL worktree", so these
+    // are filtered out rather than surfaced as `{ path: null, ... }`.
+    .filter((record) => record.path !== null);
 }
 
 // I/O seam mirroring `defaultFetcher`: shells out to git for the porcelain
@@ -354,7 +367,7 @@ function renderStaleWorktreesSection(worktrees, openNumbers) {
   let out = '';
   let headerPrinted = false;
 
-  for (const { path, branch } of worktrees) {
+  for (const { path: worktreePath, branch } of worktrees) {
     const match = /^(\d+)-.+/.exec(branch);
     if (!match) continue;
 
@@ -366,7 +379,7 @@ function renderStaleWorktreesSection(worktrees, openNumbers) {
       headerPrinted = true;
     }
     out += `  #${number} ${branch}\n`;
-    out += `    git worktree remove ${path}\n`;
+    out += `    git worktree remove ${worktreePath}\n`;
     out += '\n';
   }
 

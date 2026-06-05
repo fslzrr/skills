@@ -432,6 +432,9 @@ test('renderStaleWorktreesSection: ignores a branch with no leading-number patte
 });
 
 test('renderStaleWorktreesSection: ignores a detached worktree with a null branch', () => {
+  // `RegExp.exec(null)` coerces `null` to the string `"null"`, which has no
+  // leading digit and therefore fails the `^(\d+)-.+` pattern — so a detached
+  // (null-branch) worktree is correctly ignored.
   const worktrees = [{ path: '/tmp/wt-detached', branch: null }];
   const openNumbers = new Set([]);
   assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
@@ -529,6 +532,23 @@ test('parseWorktreePorcelain: tolerates a trailing blank line (no empty record)'
     '\n';
   assert.deepEqual(parseWorktreePorcelain(stdout), [
     { path: '/repo/main', branch: 'main' },
+  ]);
+});
+
+test('parseWorktreePorcelain: drops a non-empty block that lacks a worktree line (ADV-4)', () => {
+  // A malformed block with no `worktree <path>` line (e.g. a stray HEAD/branch
+  // pair with no preceding `worktree` line) carries no real worktree path, so
+  // the parser must drop it entirely rather than emit a `{ path: null, ... }`
+  // record. The contract is "one record per REAL worktree".
+  const stdout =
+    'worktree /repo/wt-118\n' +
+    'HEAD 7777777777777777777777777777777777777777\n' +
+    'branch refs/heads/118-some-slug\n' +
+    '\n' +
+    'HEAD 8888888888888888888888888888888888888888\n' +
+    'branch refs/heads/foo\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/wt-118', branch: '118-some-slug' },
   ]);
 });
 
