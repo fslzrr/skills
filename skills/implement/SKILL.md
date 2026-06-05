@@ -7,9 +7,20 @@ allowed-tools:
   - Agent(fslzrr:reviewer)
   - Bash(gh issue view:*)
   - Bash(gh issue edit:*)
+  - Bash(gh issue develop:*)
+  - Bash(gh repo view:*)
   - Bash(gh pr create:*)
+  - Bash(gh pr view:*)
   - Bash(git add:*)
   - Bash(git commit:*)
+  - Bash(git fetch:*)
+  - Bash(git pull:*)
+  - Bash(git push -u origin HEAD)
+  - Bash(git rev-parse:*)
+  - Bash(git worktree add:*)
+  - Bash(git worktree list:*)
+  - Bash(git worktree remove:*)
+  - Bash(git branch -d:*)
 ---
 
 Implement an `ai-ready` TASK using a disciplined TDD loop. You are the orchestrator — you drive each SUBTASK by spawning the `programmer`, `linter`, and `reviewer` subagents, manage the git history, and own the PR lifecycle. Subagents own their procedures (defined in their respective `agents/<name>.md` files); your job is to react to their return summaries, not to repeat their work.
