@@ -406,3 +406,66 @@ test('renderStaleWorktreesSection: surfaces every stale worktree, one block each
       '  #7 7-other-slug\n    git worktree remove /tmp/wt-7\n\n',
   );
 });
+
+// Locking/characterization tests (SUBTASKs 2–4). The behaviors below are
+// already implemented by `renderStaleWorktreesSection`; these tests pin them
+// against regression. They are expected to pass on arrival.
+
+test('renderStaleWorktreesSection: omits an active worktree whose number is still open', () => {
+  // Branch matches `<N>-<slug>` but `118` IS open → worktree is still active,
+  // so it is omitted and the section produces no header (empty string).
+  const worktrees = [{ path: '/tmp/wt-118', branch: '118-some-slug' }];
+  const openNumbers = new Set([118, 42]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: ignores a branch with no leading-number pattern', () => {
+  const worktrees = [{ path: '/tmp/wt-main', branch: 'main' }];
+  const openNumbers = new Set([]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: ignores a detached worktree with a null branch', () => {
+  const worktrees = [{ path: '/tmp/wt-detached', branch: null }];
+  const openNumbers = new Set([]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: ignores a bare `<N>-` branch with an empty slug (ADV-2)', () => {
+  // The `^(\d+)-.+` regex requires a non-empty slug via `.+`, so `42-` with
+  // nothing after the dash does not qualify even though `42` is not open.
+  const worktrees = [{ path: '/tmp/wt-42', branch: '42-' }];
+  const openNumbers = new Set([]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: returns empty string for an empty worktree list', () => {
+  assert.equal(renderStaleWorktreesSection([], new Set([42, 118])), '');
+});
+
+test('renderStaleWorktreesSection: returns empty string when only active and non-matching worktrees are present', () => {
+  // One active (`118` open), one non-matching (`main`) → zero stale → no header.
+  const worktrees = [
+    { path: '/tmp/wt-118', branch: '118-some-slug' },
+    { path: '/tmp/wt-main', branch: 'main' },
+  ];
+  const openNumbers = new Set([118]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: in a mixed list, surfaces only the stale worktree block', () => {
+  // `7` is stale (not open, matching slug); `118` is active (open); `main`
+  // is non-matching. Only the `7` block is emitted, proving the filter selects
+  // correctly and the spacing contract (header + two-line block + trailing
+  // blank) holds.
+  const worktrees = [
+    { path: '/tmp/wt-118', branch: '118-active-slug' },
+    { path: '/tmp/wt-7', branch: '7-stale-slug' },
+    { path: '/tmp/wt-main', branch: 'main' },
+  ];
+  const openNumbers = new Set([118]);
+  assert.equal(
+    renderStaleWorktreesSection(worktrees, openNumbers),
+    '=== Stale worktrees ===\n\n  #7 7-stale-slug\n    git worktree remove /tmp/wt-7\n\n',
+  );
+});
