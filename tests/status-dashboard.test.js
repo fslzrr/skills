@@ -13,6 +13,7 @@ const {
   buildGraph,
   runDashboard,
   renderSuggestionSentence,
+  renderStaleWorktreesSection,
 } = require('../skills/issues/scripts/status-dashboard.js');
 
 function run(fixturePath) {
@@ -380,5 +381,28 @@ test('renderSuggestionSentence: R3 with null parentPrd omits the root-of-PRD cla
   assert.equal(
     renderSuggestionSentence(suggestion),
     'Suggested next: /implement #77 — unblocks 4 downstream TASKs\n',
+  );
+});
+
+test('renderStaleWorktreesSection: surfaces a worktree whose branch maps to a closed issue', () => {
+  const worktrees = [{ path: '/tmp/wt-118', branch: '118-some-slug' }];
+  const openNumbers = new Set([42, 119]); // 118 is NOT open → stale
+  assert.equal(
+    renderStaleWorktreesSection(worktrees, openNumbers),
+    '=== Stale worktrees ===\n\n  #118 118-some-slug\n    git worktree remove /tmp/wt-118\n\n',
+  );
+});
+
+test('renderStaleWorktreesSection: surfaces every stale worktree, one block each', () => {
+  const worktrees = [
+    { path: '/tmp/wt-118', branch: '118-some-slug' },
+    { path: '/tmp/wt-7', branch: '7-other-slug' },
+  ];
+  const openNumbers = new Set([42]); // neither 118 nor 7 is open → both stale
+  assert.equal(
+    renderStaleWorktreesSection(worktrees, openNumbers),
+    '=== Stale worktrees ===\n\n' +
+      '  #118 118-some-slug\n    git worktree remove /tmp/wt-118\n\n' +
+      '  #7 7-other-slug\n    git worktree remove /tmp/wt-7\n\n',
   );
 });

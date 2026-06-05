@@ -269,6 +269,43 @@ function renderPrdsReadyToCloseSection(issues) {
   return out;
 }
 
+// Renders the Stale worktrees section: surfaces git worktrees whose branch
+// follows the `<N>-<slug>` naming convention but whose `<N>` is NOT among the
+// currently-open issue numbers — i.e. the issue the worktree was created for
+// has since been closed/merged, leaving the worktree orphaned on disk. The
+// header is printed once, before the first stale worktree; if none qualifies
+// the section is omitted entirely (no header, no trailing blank line). For
+// each stale worktree a two-line block is emitted (`  #<N> <branch>` then the
+// indented `git worktree remove <path>` cleanup command), followed by a blank
+// line — mirroring `renderPrdsReadyToCloseSection`'s spacing contract.
+//
+// DETECT-AND-SURFACE ONLY: this is a pure function. It returns the
+// `git worktree remove` command as text for the operator to run; it never
+// spawns git, removes anything, or performs any I/O. Per ADR-010 the actual
+// removal stays a human-gated step.
+function renderStaleWorktreesSection(worktrees, openNumbers) {
+  let out = '';
+  let headerPrinted = false;
+
+  for (const { path, branch } of worktrees) {
+    const match = /^(\d+)-.+/.exec(branch);
+    if (!match) continue;
+
+    const number = Number(match[1]);
+    if (openNumbers.has(number)) continue;
+
+    if (!headerPrinted) {
+      out += '=== Stale worktrees ===\n\n';
+      headerPrinted = true;
+    }
+    out += `  #${number} ${branch}\n`;
+    out += `    git worktree remove ${path}\n`;
+    out += '\n';
+  }
+
+  return out;
+}
+
 // Renders the Currently in flight section: a header followed by either one
 // `  #<number> [<label>] <title>` line per TASK whose labels include any of
 // the three in-flight states (input order preserved) or a single `(none)`
@@ -819,6 +856,7 @@ module.exports = {
   runDashboard,
   suggestNext,
   renderSuggestionSentence,
+  renderStaleWorktreesSection,
   buildGraph,
 };
 
