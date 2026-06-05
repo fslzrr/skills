@@ -108,7 +108,7 @@ c. **Commit the ADR file** atomically — one commit for the ADR file, following
    git commit -m "docs(adr): <description of the decision recorded>"
    ```
 
-d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirmation, open PR, transition to `in-code-review`).
+d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirmation, push, open PR, transition to `in-code-review`, then tear down the worktree once the PR is merged).
 
 ---
 
@@ -126,7 +126,7 @@ c. **Commit the style guide file** atomically — one commit for the style guide
    git commit -m "docs(style-guide): <description of the pattern documented>"
    ```
 
-d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirmation, open PR, transition to `in-code-review`).
+d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirmation, push, open PR, transition to `in-code-review`, then tear down the worktree once the PR is merged).
 
 ---
 
@@ -225,6 +225,24 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 16. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
 
 17. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch with `git push -u origin HEAD`. The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
+
+### Teardown (after the PR is merged)
+
+18. Once `gh pr view <PR#> --json state -q .state` reports `MERGED`, tear the worktree down from inside it:
+    ```bash
+    DEFAULT=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+    WT=$(git rev-parse --show-toplevel)                                   # the worktree you are in
+    BRANCH=$(git rev-parse --abbrev-ref HEAD)                             # the task branch
+    MAIN=$(git rev-parse --path-format=absolute --git-common-dir); MAIN="${MAIN%/.git}"   # the main checkout
+    cd "$MAIN"
+    git worktree remove "$WT"                # never --force
+    git branch -d "$BRANCH"
+    git pull origin "$DEFAULT" --prune
+    ```
+    - If `git worktree remove` reports the worktree is **dirty** (uncommitted or untracked changes), **stop and surface it** to the human — never pass `--force`.
+    - If `git branch -d` reports the branch is **not fully merged**, **stop and surface it** to the human — never use `git branch -D`.
+
+    This leaves the main checkout on a freshly pulled default branch with the task's worktree and branch removed.
 
 ## Hard rules
 
