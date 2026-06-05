@@ -145,7 +145,7 @@ Check whether all TASKs under a PRD are closed, and close the PRD if so:
 ### status-dashboard
 Show the current factory state by running [scripts/status-dashboard.js](scripts/status-dashboard.js).
 
-Alongside the issue-state sections, the dashboard renders a **Stale worktrees** section: it lists every local git worktree whose `<N>-<slug>` branch maps to a closed/merged issue (i.e. `<N>` is no longer in the open-issue set), each with a ready-to-paste `git worktree remove <path>` command. This is detect-and-surface only — the dashboard never removes a worktree. The section is omitted entirely when there are no stale worktrees.
+Alongside the issue-state sections, the dashboard renders a **Stale worktrees** section: it lists every local git worktree whose `<N>-<slug>` branch has an `<N>` that is absent from the open-issue set (i.e. the issue it was created for has been closed or merged), each with a ready-to-paste `git worktree remove <path>` command. This is detect-and-surface only — the dashboard never removes a worktree. The section is omitted entirely when there are no stale worktrees.
 
 Present the script's stdout to the user verbatim inside a fenced code block. Do not summarize, omit issue titles, drop sections, or reformat per-issue lines.
 
