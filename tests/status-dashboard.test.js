@@ -14,6 +14,7 @@ const {
   runDashboard,
   renderSuggestionSentence,
   renderStaleWorktreesSection,
+  parseWorktreePorcelain,
 } = require('../skills/issues/scripts/status-dashboard.js');
 
 function run(fixturePath) {
@@ -126,7 +127,12 @@ test('empty state: no candidate from any rule returns nulls', () => {
 
 function dashboardOf(fixturePath) {
   const issues = require(fixturePath);
-  return runDashboard({ fetcher: () => issues });
+  // Inject an empty worktree seam so these snapshots stay deterministic: the
+  // default `defaultWorktreeFetcher` shells out to the real `git worktree
+  // list`, which in the test repo would surface the active `118-...` worktree
+  // (its number not in any fixture's open set) as stale and break every
+  // snapshot. An empty list keeps the stale section omitted.
+  return runDashboard({ fetcher: () => issues, worktreeFetcher: () => [] });
 }
 
 test('dashboard trailing suggestion: R1 ai-in-progress emits /implement #N — resume', () => {
@@ -468,4 +474,101 @@ test('renderStaleWorktreesSection: in a mixed list, surfaces only the stale work
     renderStaleWorktreesSection(worktrees, openNumbers),
     '=== Stale worktrees ===\n\n  #7 7-stale-slug\n    git worktree remove /tmp/wt-7\n\n',
   );
+});
+
+// Unit tests for `parseWorktreePorcelain` (SUBTASK 5). The pure parser turns
+// `git worktree list --porcelain` stdout into `{ path, branch }` records; these
+// pin its block-splitting, `refs/heads/` stripping, detached-HEAD null branch,
+// ordering, and trailing-blank-line tolerance.
+
+test('parseWorktreePorcelain: parses a single branch worktree, stripping refs/heads/', () => {
+  const stdout =
+    'worktree /repo/wt-118\n' +
+    'HEAD 1111111111111111111111111111111111111111\n' +
+    'branch refs/heads/118-some-slug\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/wt-118', branch: '118-some-slug' },
+  ]);
+});
+
+test('parseWorktreePorcelain: maps a detached worktree (no branch line) to branch null', () => {
+  const stdout =
+    'worktree /repo/wt-detached\n' +
+    'HEAD 2222222222222222222222222222222222222222\n' +
+    'detached\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/wt-detached', branch: null },
+  ]);
+});
+
+test('parseWorktreePorcelain: parses multiple blocks in input order', () => {
+  const stdout =
+    'worktree /repo/main\n' +
+    'HEAD 3333333333333333333333333333333333333333\n' +
+    'branch refs/heads/main\n' +
+    '\n' +
+    'worktree /repo/wt-7\n' +
+    'HEAD 4444444444444444444444444444444444444444\n' +
+    'branch refs/heads/7-other-slug\n' +
+    '\n' +
+    'worktree /repo/wt-detached\n' +
+    'HEAD 5555555555555555555555555555555555555555\n' +
+    'detached\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/main', branch: 'main' },
+    { path: '/repo/wt-7', branch: '7-other-slug' },
+    { path: '/repo/wt-detached', branch: null },
+  ]);
+});
+
+test('parseWorktreePorcelain: tolerates a trailing blank line (no empty record)', () => {
+  const stdout =
+    'worktree /repo/main\n' +
+    'HEAD 6666666666666666666666666666666666666666\n' +
+    'branch refs/heads/main\n' +
+    '\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/main', branch: 'main' },
+  ]);
+});
+
+// Full-dashboard wiring snapshot (SUBTASK 5). Proves `runDashboard` calls the
+// injected `worktreeFetcher` seam and inserts the stale section AFTER `Blocked`
+// and BEFORE `Suggested next:`. Reuses the R2 fixture (open numbers 70, 71, 80)
+// with an injected worktree on `999-orphan-task` (999 ∉ open) so it surfaces.
+test('dashboard wiring: injected stale worktree appears after Blocked and before Suggested next', () => {
+  const issues = require('./fixtures/suggester-r2-ready-over-prd.js');
+  const out = runDashboard({
+    fetcher: () => issues,
+    worktreeFetcher: () => [{ path: '/tmp/wt-999', branch: '999-orphan-task' }],
+  });
+  const expected =
+    '=== Currently in flight ===\n' +
+    '\n' +
+    '(none)\n' +
+    '\n' +
+    '=== PRDs by state ===\n' +
+    '\n' +
+    'needs-triage:\n' +
+    '  #71 PRD: epsilon\n' +
+    '\n' +
+    'in-backlog:\n' +
+    '  #70 PRD: delta\n' +
+    '\n' +
+    '=== TASKs by parent PRD ===\n' +
+    '\n' +
+    '--- PRD #70: PRD: delta ---\n' +
+    '└── #80 [ai-ready] TASK: ready and unblocked\n' +
+    '\n' +
+    '=== Blocked ===\n' +
+    '\n' +
+    '(none)\n' +
+    '\n' +
+    '=== Stale worktrees ===\n' +
+    '\n' +
+    '  #999 999-orphan-task\n' +
+    '    git worktree remove /tmp/wt-999\n' +
+    '\n' +
+    'Suggested next: /implement #80 — unblocks 0 downstream TASKs\n';
+  assert.equal(out, expected);
 });
