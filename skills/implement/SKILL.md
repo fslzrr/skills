@@ -17,6 +17,7 @@ allowed-tools:
   - Bash(git pull:*)
   - Bash(git push -u origin HEAD)
   - Bash(git rev-parse:*)
+  - Bash(git status:*)
   - Bash(git worktree add:*)
   - Bash(git worktree list:*)
   - Bash(git worktree remove:*)
@@ -51,8 +52,43 @@ Before starting, read `docs/style-guide/` once per session:
 ### Setup
 
 1. Use `/issues` to transition the TASK from `ai-ready` → `ai-in-progress`.
-2. Use `/issues` to read the full TASK content: goal, acceptance criteria, affected areas, testing approach, parent PRD.
-3. **Check for the `adr` or `style-guide` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below. If labeled `style-guide`, follow the **Style guide routing** path below. Both skip the TDD loop entirely.
+
+2. **Create (or resume) the task's isolated worktree, then `cd` into it.** Do this *before* reading the body or routing on labels, so every downstream read, write, and command — including `/document`'s relative `docs/` writes — lands inside the worktree.
+
+   a. Detect the default branch at runtime (never hardcode `main`) and refresh refs:
+      ```bash
+      DEFAULT=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
+      git fetch
+      ```
+   b. Resolve the sibling worktree location from the current repo root (pure shell parameter expansion, no external helpers):
+      ```bash
+      ROOT=$(git rev-parse --show-toplevel)
+      PARENT="${ROOT%/*}"; NAME="${ROOT##*/}"
+      ```
+      Worktrees live under `$PARENT/$NAME-worktrees/`, one per TASK. Each is named for the TASK's GitHub-linked branch, so `$BRANCH` below is the `<TASK#>-<slug>` name `gh issue develop` assigns and the worktree path is always `$PARENT/$NAME-worktrees/$BRANCH`.
+   c. Capture the linked branch name for this TASK (empty if none exists yet):
+      ```bash
+      BRANCH=$(gh issue develop <TASK#> --list | awk 'NR==1{print $1}')
+      ```
+      (`awk` is a POSIX helper outside the skill's `gh`/`git` verb space; it is gated at the session level per ADR-010 — like subagent tool calls — rather than declared in `allowed-tools`.)
+   d. **Resume guard** — never auto-discard existing work. Take the first case that matches:
+      - **`$BRANCH` is set and its worktree already exists** (`$PARENT/$NAME-worktrees/$BRANCH` appears in `git worktree list`): `cd` into it, then check `git status --porcelain` — if it reports nothing the worktree is **clean**, so resume silently; if it reports changes the worktree is **dirty**, so **stop and ask the human** before building on it (never reset, stash, or discard).
+      - **`$BRANCH` is set but no worktree exists for it**: re-materialize and enter —
+        ```bash
+        git worktree add "$PARENT/$NAME-worktrees/$BRANCH" "$BRANCH"
+        cd "$PARENT/$NAME-worktrees/$BRANCH"
+        ```
+      - **`$BRANCH` is empty** (fresh start): create the GitHub-linked branch off the default, re-run the step 2c capture (now non-empty), then add the worktree and enter —
+        ```bash
+        gh issue develop <TASK#> --base "$DEFAULT"
+        git fetch
+        BRANCH=$(gh issue develop <TASK#> --list | awk 'NR==1{print $1}')
+        git worktree add "$PARENT/$NAME-worktrees/$BRANCH" "$BRANCH"
+        cd "$PARENT/$NAME-worktrees/$BRANCH"
+        ```
+   e. The worktree at `$PARENT/$NAME-worktrees/$BRANCH` is now the root for everything that follows — all reads, writes, commits, and subagent spawns.
+
+3. Use `/issues` to read the full TASK content (goal, acceptance criteria, affected areas, testing approach, parent PRD) and **check for the `adr` or `style-guide` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below; if labeled `style-guide`, follow the **Style guide routing** path below. Both skip the TDD loop entirely.
 
 ---
 
