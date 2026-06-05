@@ -88,6 +88,8 @@ Before starting, read `docs/style-guide/` once per session:
         ```
    e. The worktree at `$PARENT/$NAME-worktrees/$BRANCH` is now the root for everything that follows — all reads, writes, commits, and subagent spawns.
 
+   **Worktree handoff** — every subagent you spawn (`programmer`, `linter`, `reviewer`) and every `/document` hand-off must begin its prompt with this absolute worktree path plus the instruction to `cd` into it first and treat it as the root for all reads, writes, and commands. Step 2 already `cd`'d here before any label routing, so this applies uniformly across the TDD, ADR, and style-guide routes — including `/document`'s relative `docs/` writes. Do **not** use Claude Code's `Agent(isolation: "worktree")`; the task's worktree is created and managed explicitly here.
+
 3. Use `/issues` to read the full TASK content (goal, acceptance criteria, affected areas, testing approach, parent PRD) and **check for the `adr` or `style-guide` label.** If the TASK is labeled `adr`, follow the **ADR routing** path below; if labeled `style-guide`, follow the **Style guide routing** path below. Both skip the TDD loop entirely.
 
 ---
@@ -96,7 +98,7 @@ Before starting, read `docs/style-guide/` once per session:
 
 When the TASK carries the `adr` label:
 
-a. **Call `/document`** — pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
+a. **Call `/document`** — begin the hand-off with the worktree handoff (step 2) so its relative `docs/` writes land in the worktree, then pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
 
 b. **Do not spawn `programmer`, `linter`, or `reviewer`** — ADR tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
 
@@ -114,7 +116,7 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 When the TASK carries the `style-guide` label:
 
-a. **Call `/document`** — pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
+a. **Call `/document`** — begin the hand-off with the worktree handoff (step 2) so its relative `docs/` writes land in the worktree, then pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
 
 b. **Do not spawn `programmer`, `linter`, or `reviewer`** — style guide tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
 
@@ -139,13 +141,13 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ### Execute (repeat for each SUBTASK)
 
-7. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict) in the prompt. The subagent follows `agents/programmer.md` — you do not repeat its procedure.
+7. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Begin the prompt with the worktree handoff (step 2), then pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict). The subagent follows `agents/programmer.md` — you do not repeat its procedure.
 
    Wait for the subagent's return summary (files changed, test names added, RED→GREEN evidence).
 
    - If the subagent reports a blocker per `agents/programmer.md`'s hard rules, stop. Surface the blocker to the human and wait for guidance before continuing.
 
-8. **Spawn the `linter` subagent** on the staged changes. The subagent follows `agents/linter.md` — you do not repeat its procedure.
+8. **Spawn the `linter` subagent** on the staged changes, beginning the prompt with the worktree handoff (step 2). The subagent follows `agents/linter.md` — you do not repeat its procedure.
 
    Wait for the subagent's return summary (per-bucket status, files re-staged, hard-stop details if any).
 
@@ -156,7 +158,7 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
      - Re-spawn the `linter` subagent.
      - If this is the **3rd consecutive lint hard-stop on the same SUBTASK**: stop. Show the subagent's last hard-stop output to the human and wait for guidance before continuing.
 
-9. **Spawn the `reviewer` subagent** on the staged changes. The subagent follows `agents/reviewer.md` — you do not repeat its procedure.
+9. **Spawn the `reviewer` subagent** on the staged changes, beginning the prompt with the worktree handoff (step 2). The subagent follows `agents/reviewer.md` — you do not repeat its procedure.
 
     Wait for the subagent's return summary (BLOCKING findings, ADVISORY findings, verdict).
 
@@ -229,4 +231,5 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 - One atomic commit per SUBTASK — this applies to ADR file commits as well as code commits.
 - Do not skip the full suite check after all SUBTASKs.
 - Do not open a PR without explicit human confirmation.
+- Run every task inside its own worktree (Setup step 2): begin every subagent spawn and every `/document` hand-off with the worktree handoff, uniformly across the TDD, ADR, and style-guide routes — and never use Claude Code's `Agent(isolation: "worktree")`, since the worktree is created and managed explicitly here.
 - When the `adr` or `style-guide` label is present, never spawn `programmer`, `linter`, or `reviewer` — always route to `/document`.
