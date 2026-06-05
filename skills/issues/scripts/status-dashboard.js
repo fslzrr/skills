@@ -26,6 +26,68 @@ function defaultFetcher() {
   return JSON.parse(stdout);
 }
 
+// Returns the remainder of `line` after `prefix` (trimmed), or `null` when
+// `line` does not start with `prefix`. Centralises the "match-and-strip" step
+// the porcelain parser applies to each known key line, so the prefix string is
+// stated once per key and the parse loop reads as a sequence of declarations.
+function stripPrefix(line, prefix) {
+  return line.startsWith(prefix) ? line.slice(prefix.length).trim() : null;
+}
+
+// Parses the stdout of `git worktree list --porcelain` into an array of
+// `{ path, branch }` records, one per worktree block. Porcelain blocks are
+// separated by a blank line; each block carries a `worktree <path>` line, a
+// `HEAD <sha>` line, and EITHER a `branch refs/heads/<name>` line OR a
+// `detached` line. `path` is the value after `worktree `; `branch` is the
+// `<name>` after `branch refs/heads/` (the `refs/heads/` prefix stripped), or
+// `null` for a detached HEAD (no `branch` line). Pure: no I/O. Leading/
+// trailing whitespace and a trailing blank line (git emits one) are tolerated
+// by splitting on blank-line boundaries and dropping empty blocks. A non-empty
+// block that carries no `worktree <path>` line is also dropped (it is not a
+// real worktree), so the contract is one record per REAL worktree — every
+// returned record has a non-null `path`.
+function parseWorktreePorcelain(stdout) {
+  return stdout
+    .trim()
+    .split(/\n\s*\n/)
+    .filter((block) => block.trim() !== '')
+    .map((block) => {
+      // Local named `worktreePath` rather than the bare `path` so the variable
+      // is self-describing and matches the file's descriptive naming (and would
+      // not collide with a future `require('node:path')` — not imported today).
+      // The RECORD KEY stays `path` — the public contract consumed by
+      // `renderStaleWorktreesSection` and the injected fetcher seam.
+      let worktreePath = null;
+      let branch = null;
+      for (const line of block.split('\n')) {
+        const linePath = stripPrefix(line, 'worktree ');
+        if (linePath !== null) worktreePath = linePath;
+        const lineBranch = stripPrefix(line, 'branch refs/heads/');
+        if (lineBranch !== null) branch = lineBranch;
+      }
+      return { path: worktreePath, branch };
+    })
+    // Drop path-less blocks: a non-empty block with no `worktree <path>` line
+    // is not a real worktree (malformed/stray porcelain), so its `path` stays
+    // null. The parser's contract is "one record per REAL worktree", so these
+    // are filtered out rather than surfaced as `{ path: null, ... }`.
+    .filter((record) => record.path !== null);
+}
+
+// I/O seam mirroring `defaultFetcher`: shells out to git for the porcelain
+// worktree listing and hands the raw stdout to the pure parser. Like
+// `defaultFetcher` this performs I/O and is not unit-tested directly — the
+// testable logic lives in `parseWorktreePorcelain` (pure) and the renderer
+// reached via the injected seam in `runDashboard`.
+function defaultWorktreeFetcher() {
+  const stdout = execFileSync(
+    'git',
+    ['worktree', 'list', '--porcelain'],
+    { encoding: 'utf8' },
+  );
+  return parseWorktreePorcelain(stdout);
+}
+
 const PRD_STATES = ['needs-triage', 'in-backlog'];
 
 // In-flight states come FIRST so that, in defensive multi-label cases (a TASK
@@ -190,10 +252,19 @@ function buildGraph(issues) {
   return Object.freeze({ byNumber, liveBlockers, subtreeOf, cycleNodes, cycles });
 }
 
-function runDashboard({ fetcher = defaultFetcher } = {}) {
+function runDashboard({
+  fetcher = defaultFetcher,
+  worktreeFetcher = defaultWorktreeFetcher,
+} = {}) {
   const issues = fetcher();
   const graph = buildGraph(issues);
   const { cycles } = graph;
+
+  // The open-issue number set is the authoritative liveness signal for stale
+  // worktrees (per ADR-011: a worktree branch's `<N>` absent from the open set
+  // ⇒ the issue is closed/merged ⇒ the worktree is stale). Computed once from
+  // the already-fetched issues — no extra `gh` call.
+  const openNumbers = new Set(issues.map((i) => i.number));
 
   let output = '';
 
@@ -214,6 +285,15 @@ function runDashboard({ fetcher = defaultFetcher } = {}) {
   output += renderBlockedSection(issues);
 
   output += renderPrdsReadyToCloseSection(issues);
+
+  // Stale worktrees go here — AFTER `renderPrdsReadyToCloseSection` and BEFORE
+  // the trailing suggestion — so the suggestion's "free blank line" invariant
+  // holds either way: when this section is non-empty it ends in `\n\n` (its
+  // per-item trailing blank), supplying the blank line above the suggestion;
+  // when it is empty (`''`) the always-emitted `renderBlockedSection` above
+  // still guarantees the `\n\n`. The spacing contract is preserved in both
+  // cases.
+  output += renderStaleWorktreesSection(worktreeFetcher(), openNumbers);
 
   // Trailing one-line suggestion. The last NON-EMPTY preceding section
   // ends in `\n\n` (its per-row `\n` plus a blank-line `\n`) — so the
@@ -263,6 +343,43 @@ function renderPrdsReadyToCloseSection(issues) {
     }
     out += `  #${prd.number} ${prd.title}\n`;
     out += '    ✓ all TASKs closed — ready to close\n';
+    out += '\n';
+  }
+
+  return out;
+}
+
+// Renders the Stale worktrees section: surfaces git worktrees whose branch
+// follows the `<N>-<slug>` naming convention but whose `<N>` is NOT among the
+// currently-open issue numbers — i.e. the issue the worktree was created for
+// has since been closed/merged, leaving the worktree orphaned on disk. The
+// header is printed once, before the first stale worktree; if none qualifies
+// the section is omitted entirely (no header, no trailing blank line). For
+// each stale worktree a two-line block is emitted (`  #<N> <branch>` then the
+// indented `git worktree remove <path>` cleanup command), followed by a blank
+// line — mirroring `renderPrdsReadyToCloseSection`'s spacing contract.
+//
+// DETECT-AND-SURFACE ONLY: this is a pure function. It returns the
+// `git worktree remove` command as text for the operator to run; it never
+// spawns git, removes anything, or performs any I/O. Per ADR-010 the actual
+// removal stays a human-gated step.
+function renderStaleWorktreesSection(worktrees, openNumbers) {
+  let out = '';
+  let headerPrinted = false;
+
+  for (const { path: worktreePath, branch } of worktrees) {
+    const match = /^(\d+)-.+/.exec(branch);
+    if (!match) continue;
+
+    const number = Number(match[1]);
+    if (openNumbers.has(number)) continue;
+
+    if (!headerPrinted) {
+      out += '=== Stale worktrees ===\n\n';
+      headerPrinted = true;
+    }
+    out += `  #${number} ${branch}\n`;
+    out += `    git worktree remove ${worktreePath}\n`;
     out += '\n';
   }
 
@@ -819,6 +936,8 @@ module.exports = {
   runDashboard,
   suggestNext,
   renderSuggestionSentence,
+  renderStaleWorktreesSection,
+  parseWorktreePorcelain,
   buildGraph,
 };
 

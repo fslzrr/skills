@@ -13,6 +13,8 @@ const {
   buildGraph,
   runDashboard,
   renderSuggestionSentence,
+  renderStaleWorktreesSection,
+  parseWorktreePorcelain,
 } = require('../skills/issues/scripts/status-dashboard.js');
 
 function run(fixturePath) {
@@ -125,7 +127,12 @@ test('empty state: no candidate from any rule returns nulls', () => {
 
 function dashboardOf(fixturePath) {
   const issues = require(fixturePath);
-  return runDashboard({ fetcher: () => issues });
+  // Inject an empty worktree seam so these snapshots stay deterministic: the
+  // default `defaultWorktreeFetcher` shells out to the real `git worktree
+  // list`, which in the test repo would surface the active `118-...` worktree
+  // (its number not in any fixture's open set) as stale and break every
+  // snapshot. An empty list keeps the stale section omitted.
+  return runDashboard({ fetcher: () => issues, worktreeFetcher: () => [] });
 }
 
 test('dashboard trailing suggestion: R1 ai-in-progress emits /implement #N — resume', () => {
@@ -381,4 +388,207 @@ test('renderSuggestionSentence: R3 with null parentPrd omits the root-of-PRD cla
     renderSuggestionSentence(suggestion),
     'Suggested next: /implement #77 — unblocks 4 downstream TASKs\n',
   );
+});
+
+test('renderStaleWorktreesSection: surfaces a worktree whose branch maps to a closed issue', () => {
+  const worktrees = [{ path: '/tmp/wt-118', branch: '118-some-slug' }];
+  const openNumbers = new Set([42, 119]); // 118 is NOT open → stale
+  assert.equal(
+    renderStaleWorktreesSection(worktrees, openNumbers),
+    '=== Stale worktrees ===\n\n  #118 118-some-slug\n    git worktree remove /tmp/wt-118\n\n',
+  );
+});
+
+test('renderStaleWorktreesSection: surfaces every stale worktree, one block each', () => {
+  const worktrees = [
+    { path: '/tmp/wt-118', branch: '118-some-slug' },
+    { path: '/tmp/wt-7', branch: '7-other-slug' },
+  ];
+  const openNumbers = new Set([42]); // neither 118 nor 7 is open → both stale
+  assert.equal(
+    renderStaleWorktreesSection(worktrees, openNumbers),
+    '=== Stale worktrees ===\n\n' +
+      '  #118 118-some-slug\n    git worktree remove /tmp/wt-118\n\n' +
+      '  #7 7-other-slug\n    git worktree remove /tmp/wt-7\n\n',
+  );
+});
+
+// Locking/characterization tests (SUBTASKs 2–4). The behaviors below are
+// already implemented by `renderStaleWorktreesSection`; these tests pin them
+// against regression. They are expected to pass on arrival.
+
+test('renderStaleWorktreesSection: omits an active worktree whose number is still open', () => {
+  // Branch matches `<N>-<slug>` but `118` IS open → worktree is still active,
+  // so it is omitted and the section produces no header (empty string).
+  const worktrees = [{ path: '/tmp/wt-118', branch: '118-some-slug' }];
+  const openNumbers = new Set([118, 42]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: ignores a branch with no leading-number pattern', () => {
+  const worktrees = [{ path: '/tmp/wt-main', branch: 'main' }];
+  const openNumbers = new Set([]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: ignores a detached worktree with a null branch', () => {
+  // `RegExp.exec(null)` coerces `null` to the string `"null"`, which has no
+  // leading digit and therefore fails the `^(\d+)-.+` pattern — so a detached
+  // (null-branch) worktree is correctly ignored.
+  const worktrees = [{ path: '/tmp/wt-detached', branch: null }];
+  const openNumbers = new Set([]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: ignores a bare `<N>-` branch with an empty slug (ADV-2)', () => {
+  // The `^(\d+)-.+` regex requires a non-empty slug via `.+`, so `42-` with
+  // nothing after the dash does not qualify even though `42` is not open.
+  const worktrees = [{ path: '/tmp/wt-42', branch: '42-' }];
+  const openNumbers = new Set([]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: returns empty string for an empty worktree list', () => {
+  assert.equal(renderStaleWorktreesSection([], new Set([42, 118])), '');
+});
+
+test('renderStaleWorktreesSection: returns empty string when only active and non-matching worktrees are present', () => {
+  // One active (`118` open), one non-matching (`main`) → zero stale → no header.
+  const worktrees = [
+    { path: '/tmp/wt-118', branch: '118-some-slug' },
+    { path: '/tmp/wt-main', branch: 'main' },
+  ];
+  const openNumbers = new Set([118]);
+  assert.equal(renderStaleWorktreesSection(worktrees, openNumbers), '');
+});
+
+test('renderStaleWorktreesSection: in a mixed list, surfaces only the stale worktree block', () => {
+  // `7` is stale (not open, matching slug); `118` is active (open); `main`
+  // is non-matching. Only the `7` block is emitted, proving the filter selects
+  // correctly and the spacing contract (header + two-line block + trailing
+  // blank) holds.
+  const worktrees = [
+    { path: '/tmp/wt-118', branch: '118-active-slug' },
+    { path: '/tmp/wt-7', branch: '7-stale-slug' },
+    { path: '/tmp/wt-main', branch: 'main' },
+  ];
+  const openNumbers = new Set([118]);
+  assert.equal(
+    renderStaleWorktreesSection(worktrees, openNumbers),
+    '=== Stale worktrees ===\n\n  #7 7-stale-slug\n    git worktree remove /tmp/wt-7\n\n',
+  );
+});
+
+// Unit tests for `parseWorktreePorcelain` (SUBTASK 5). The pure parser turns
+// `git worktree list --porcelain` stdout into `{ path, branch }` records; these
+// pin its block-splitting, `refs/heads/` stripping, detached-HEAD null branch,
+// ordering, and trailing-blank-line tolerance.
+
+test('parseWorktreePorcelain: parses a single branch worktree, stripping refs/heads/', () => {
+  const stdout =
+    'worktree /repo/wt-118\n' +
+    'HEAD 1111111111111111111111111111111111111111\n' +
+    'branch refs/heads/118-some-slug\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/wt-118', branch: '118-some-slug' },
+  ]);
+});
+
+test('parseWorktreePorcelain: maps a detached worktree (no branch line) to branch null', () => {
+  const stdout =
+    'worktree /repo/wt-detached\n' +
+    'HEAD 2222222222222222222222222222222222222222\n' +
+    'detached\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/wt-detached', branch: null },
+  ]);
+});
+
+test('parseWorktreePorcelain: parses multiple blocks in input order', () => {
+  const stdout =
+    'worktree /repo/main\n' +
+    'HEAD 3333333333333333333333333333333333333333\n' +
+    'branch refs/heads/main\n' +
+    '\n' +
+    'worktree /repo/wt-7\n' +
+    'HEAD 4444444444444444444444444444444444444444\n' +
+    'branch refs/heads/7-other-slug\n' +
+    '\n' +
+    'worktree /repo/wt-detached\n' +
+    'HEAD 5555555555555555555555555555555555555555\n' +
+    'detached\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/main', branch: 'main' },
+    { path: '/repo/wt-7', branch: '7-other-slug' },
+    { path: '/repo/wt-detached', branch: null },
+  ]);
+});
+
+test('parseWorktreePorcelain: tolerates a trailing blank line (no empty record)', () => {
+  const stdout =
+    'worktree /repo/main\n' +
+    'HEAD 6666666666666666666666666666666666666666\n' +
+    'branch refs/heads/main\n' +
+    '\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/main', branch: 'main' },
+  ]);
+});
+
+test('parseWorktreePorcelain: drops a non-empty block that lacks a worktree line (ADV-4)', () => {
+  // A malformed block with no `worktree <path>` line (e.g. a stray HEAD/branch
+  // pair with no preceding `worktree` line) carries no real worktree path, so
+  // the parser must drop it entirely rather than emit a `{ path: null, ... }`
+  // record. The contract is "one record per REAL worktree".
+  const stdout =
+    'worktree /repo/wt-118\n' +
+    'HEAD 7777777777777777777777777777777777777777\n' +
+    'branch refs/heads/118-some-slug\n' +
+    '\n' +
+    'HEAD 8888888888888888888888888888888888888888\n' +
+    'branch refs/heads/foo\n';
+  assert.deepEqual(parseWorktreePorcelain(stdout), [
+    { path: '/repo/wt-118', branch: '118-some-slug' },
+  ]);
+});
+
+// Full-dashboard wiring snapshot (SUBTASK 5). Proves `runDashboard` calls the
+// injected `worktreeFetcher` seam and inserts the stale section AFTER `Blocked`
+// and BEFORE `Suggested next:`. Reuses the R2 fixture (open numbers 70, 71, 80)
+// with an injected worktree on `999-orphan-task` (999 ∉ open) so it surfaces.
+test('dashboard wiring: injected stale worktree appears after Blocked and before Suggested next', () => {
+  const issues = require('./fixtures/suggester-r2-ready-over-prd.js');
+  const out = runDashboard({
+    fetcher: () => issues,
+    worktreeFetcher: () => [{ path: '/tmp/wt-999', branch: '999-orphan-task' }],
+  });
+  const expected =
+    '=== Currently in flight ===\n' +
+    '\n' +
+    '(none)\n' +
+    '\n' +
+    '=== PRDs by state ===\n' +
+    '\n' +
+    'needs-triage:\n' +
+    '  #71 PRD: epsilon\n' +
+    '\n' +
+    'in-backlog:\n' +
+    '  #70 PRD: delta\n' +
+    '\n' +
+    '=== TASKs by parent PRD ===\n' +
+    '\n' +
+    '--- PRD #70: PRD: delta ---\n' +
+    '└── #80 [ai-ready] TASK: ready and unblocked\n' +
+    '\n' +
+    '=== Blocked ===\n' +
+    '\n' +
+    '(none)\n' +
+    '\n' +
+    '=== Stale worktrees ===\n' +
+    '\n' +
+    '  #999 999-orphan-task\n' +
+    '    git worktree remove /tmp/wt-999\n' +
+    '\n' +
+    'Suggested next: /implement #80 — unblocks 0 downstream TASKs\n';
+  assert.equal(out, expected);
 });
