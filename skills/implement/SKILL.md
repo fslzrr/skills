@@ -72,7 +72,7 @@ Before starting, read `docs/style-guide/` once per session:
       ```
       (`awk` is a POSIX helper outside the skill's `gh`/`git` verb space; it is gated at the session level per ADR-010 — like subagent tool calls — rather than declared in `allowed-tools`.)
    d. **Resume guard** — never auto-discard existing work. Take the first case that matches:
-      - **`$BRANCH` is set and its worktree already exists** (`$PARENT/$NAME-worktrees/$BRANCH` appears in `git worktree list`): `cd` into it, then check `git status --porcelain` — if it reports nothing the worktree is **clean**, so resume silently; if it reports changes the worktree is **dirty**, so **stop and ask the human** before building on it (never reset, stash, or discard).
+      - **`$BRANCH` is set and its worktree already exists** (`$PARENT/$NAME-worktrees/$BRANCH` appears in `git worktree list`): `cd` into it, then check `git status --porcelain` — if it reports nothing the worktree is **clean**, so resume silently; if it reports changes the worktree is **dirty** — surface the dirty paths, change nothing (never reset, stash, discard, or `cd` away), and **ask the human** before building on it.
       - **`$BRANCH` is set but no worktree exists for it**: re-materialize and enter —
         ```bash
         git worktree add "$PARENT/$NAME-worktrees/$BRANCH" "$BRANCH"
@@ -81,7 +81,7 @@ Before starting, read `docs/style-guide/` once per session:
       - **`$BRANCH` is empty** (fresh start): create the GitHub-linked branch off the default, re-run the step 2c capture (now non-empty), then add the worktree and enter —
         ```bash
         gh issue develop <TASK#> --base "$DEFAULT"
-        git fetch
+        git fetch                                  # pull the just-created remote branch ref so worktree add can find it
         BRANCH=$(gh issue develop <TASK#> --list | awk 'NR==1{print $1}')
         git worktree add "$PARENT/$NAME-worktrees/$BRANCH" "$BRANCH"
         cd "$PARENT/$NAME-worktrees/$BRANCH"
@@ -98,7 +98,7 @@ Before starting, read `docs/style-guide/` once per session:
 
 When the TASK carries the `adr` label:
 
-a. **Call `/document`** — begin the hand-off with the worktree handoff (step 2) so its relative `docs/` writes land in the worktree, then pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
+a. **Call `/document`** — begin the hand-off with the **Worktree handoff** rule (step 2) so its relative `docs/` writes land in the worktree, then pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
 
 b. **Do not spawn `programmer`, `linter`, or `reviewer`** — ADR tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
 
@@ -116,7 +116,7 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 When the TASK carries the `style-guide` label:
 
-a. **Call `/document`** — begin the hand-off with the worktree handoff (step 2) so its relative `docs/` writes land in the worktree, then pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
+a. **Call `/document`** — begin the hand-off with the **Worktree handoff** rule (step 2) so its relative `docs/` writes land in the worktree, then pass the full TASK body as context. `/document` owns all content drafting, confirmation, and file writing.
 
 b. **Do not spawn `programmer`, `linter`, or `reviewer`** — style guide tasks are prose documents, not code; neither the lint buckets nor the review checklist applies.
 
@@ -141,13 +141,13 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 ### Execute (repeat for each SUBTASK)
 
-7. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Begin the prompt with the worktree handoff (step 2), then pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict). The subagent follows `agents/programmer.md` — you do not repeat its procedure.
+7. **Spawn the `programmer` subagent** for this SUBTASK's behavior. Begin the prompt with the **Worktree handoff** rule (step 2), then pass the SUBTASK description and any constraints (e.g. BLOCKING findings from a prior `reviewer` verdict). The subagent follows `agents/programmer.md` — you do not repeat its procedure.
 
    Wait for the subagent's return summary (files changed, test names added, RED→GREEN evidence).
 
    - If the subagent reports a blocker per `agents/programmer.md`'s hard rules, stop. Surface the blocker to the human and wait for guidance before continuing.
 
-8. **Spawn the `linter` subagent** on the staged changes, beginning the prompt with the worktree handoff (step 2). The subagent follows `agents/linter.md` — you do not repeat its procedure.
+8. **Spawn the `linter` subagent** on the staged changes, beginning the prompt with the **Worktree handoff** rule (step 2). The subagent follows `agents/linter.md` — you do not repeat its procedure.
 
    Wait for the subagent's return summary (per-bucket status, files re-staged, hard-stop details if any).
 
@@ -158,7 +158,7 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
      - Re-spawn the `linter` subagent.
      - If this is the **3rd consecutive lint hard-stop on the same SUBTASK**: stop. Show the subagent's last hard-stop output to the human and wait for guidance before continuing.
 
-9. **Spawn the `reviewer` subagent** on the staged changes, beginning the prompt with the worktree handoff (step 2). The subagent follows `agents/reviewer.md` — you do not repeat its procedure.
+9. **Spawn the `reviewer` subagent** on the staged changes, beginning the prompt with the **Worktree handoff** rule (step 2). The subagent follows `agents/reviewer.md` — you do not repeat its procedure.
 
     Wait for the subagent's return summary (BLOCKING findings, ADVISORY findings, verdict).
 
@@ -224,16 +224,16 @@ d. Continue from step **Pre-PR gate** (present advisory log, ask for PR confirma
 
 16. Use `/issues` to transition the TASK from `ai-in-progress` → `in-code-review`.
 
-17. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch with `git push -u origin HEAD`. The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
+17. **Remain active** in this conversation. The human may give PR feedback or request changes directly here. When they do, implement the requested changes and push to the same branch with `git push -u origin HEAD` (the exact non-force form from step 15). The TASK stays `in-code-review` until the human merges the PR (GitHub auto-closes the TASK on merge).
 
 ### Teardown (after the PR is merged)
 
-18. Once `gh pr view <PR#> --json state -q .state` reports `MERGED`, tear the worktree down from inside it:
+18. From inside the worktree, once `gh pr view --json state -q .state` (it resolves to the task branch's PR) reports `MERGED`, tear it down:
     ```bash
     DEFAULT=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name)
     WT=$(git rev-parse --show-toplevel)                                   # the worktree you are in
     BRANCH=$(git rev-parse --abbrev-ref HEAD)                             # the task branch
-    MAIN=$(git rev-parse --path-format=absolute --git-common-dir); MAIN="${MAIN%/.git}"   # the main checkout
+    MAIN=$(git rev-parse --path-format=absolute --git-common-dir); MAIN="${MAIN%/.git}"   # main checkout root: common dir minus /.git (assumes the normal non-bare layout step 2 creates)
     cd "$MAIN"
     git worktree remove "$WT"                # never --force
     git branch -d "$BRANCH"
